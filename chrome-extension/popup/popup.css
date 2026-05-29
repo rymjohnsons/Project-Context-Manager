@@ -1,8 +1,6 @@
 /* popup.css — styles for the extension popup
-   Chrome sizes the popup to fit its content (up to ~800×600 px).
-   We fix the width at 380 px and let height grow naturally.
-   The lists-container has its own max-height + scroll so the popup
-   doesn't become taller than the screen. */
+   Fixed width 380px; height grows with content.
+   lists-container has its own max-height + scroll. */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -33,7 +31,6 @@ body {
   white-space: nowrap;
 }
 
-/* The green badge — only visible when the current page is in a list */
 .tab-badge {
   background: #059669;
   color: white;
@@ -91,35 +88,31 @@ button {
 .btn-secondary       { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
 .btn-secondary:hover { background: #334155; color: #e2e8f0; }
 
-/* Small × button used in the new-list form */
 .btn-icon       { background: transparent; color: #64748b; font-size: 14px; padding: 0.15rem 0.35rem; }
 .btn-icon:hover { color: #f87171; }
 
-/* Open All — green, compact */
 .btn-open       { background: #059669; color: white; font-size: 11px; padding: 0.2rem 0.45rem; }
 .btn-open:hover { background: #047857; }
 
-/* Close All — only shown when tab IDs are being tracked for this list */
 .btn-close       { background: transparent; color: #f87171; border: 1px solid #f87171; font-size: 11px; padding: 0.2rem 0.45rem; }
 .btn-close:hover { background: #f87171; color: white; }
 
-/* Delete list — subtle, turns red on hover */
 .btn-delete       { background: transparent; color: #334155; font-size: 14px; padding: 0.1rem 0.3rem; }
 .btn-delete:hover { color: #f87171; }
 
-/* Remove single URL × button */
 .remove-url-btn       { background: transparent; border: none; color: #334155; font-size: 13px;
                         padding: 0; line-height: 1; cursor: pointer; flex-shrink: 0; transition: color 0.1s; }
 .remove-url-btn:hover { color: #f87171; }
 
-/* Footer text links */
 .btn-link       { background: transparent; color: #818cf8; font-size: 11px; padding: 0.2rem 0.4rem; }
 .btn-link:hover { color: #a5b4fc; text-decoration: underline; }
+
+.btn-link--dim       { color: #475569; }
+.btn-link--dim:hover { color: #f87171; text-decoration: none; }
 
 .full-width { width: 100%; justify-content: center; }
 
 /* ── Editable list name ───────────────────────────────────────────────── */
-/* Looks like plain text until focused, then becomes a visible input field. */
 .list-name-input {
   flex: 1;
   min-width: 0;
@@ -160,7 +153,6 @@ button {
   border-bottom: 1px solid #1a2234;
 }
 
-/* Purple left border when the current tab lives in this list */
 .list-card--active {
   border-left: 3px solid #6366f1;
   padding-left: calc(0.75rem - 3px);
@@ -171,16 +163,6 @@ button {
   align-items: center;
   gap: 0.35rem;
   margin-bottom: 0.35rem;
-}
-
-.list-name {
-  flex: 1;
-  font-weight: 600;
-  font-size: 12px;
-  color: #f1f5f9;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .url-count {
@@ -241,58 +223,16 @@ button {
   background: #090f1c;
 }
 
-.footer-label {
+.footer-email {
   flex: 1;
   font-size: 10px;
   color: #475569;
-}
-
-/* ── Import / Export panels ───────────────────────────────────────────── */
-.panel {
-  padding: 0.6rem 0.75rem;
-  background: #141f33;
-  border-top: 1px solid #4338ca;
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-}
-
-.panel-label {
-  font-size: 11px;
-  color: #94a3b8;
-  line-height: 1.4;
-}
-
-.panel-label strong { color: #c7d2fe; }
-
-.panel select { flex: none; width: 100%; margin-bottom: 0.2rem; }
-
-.panel textarea {
-  background: #0f172a;
-  border: 1px solid #334155;
-  border-radius: 4px;
-  color: #e2e8f0;
-  font-family: monospace;
-  font-size: 10px;
-  padding: 0.4rem;
-  height: 68px;
-  resize: none;
-  outline: none;
-  width: 100%;
-  word-break: break-all;
-}
-
-.panel textarea:focus       { border-color: #6366f1; }
-.panel textarea::placeholder { color: #475569; }
-
-.panel-actions {
-  display: flex;
-  gap: 0.4rem;
-  justify-content: flex-end;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ── Status toast ─────────────────────────────────────────────────────── */
-/* Fixed to the very top of the popup so it overlays without shifting layout */
 .status-toast {
   position: fixed;
   top: 0;
@@ -310,7 +250,6 @@ button {
 .status-toast--warn    { background: #d97706; color: white; }
 
 /* ── Login screen ─────────────────────────────────────────────────────── */
-/* Takes up the full popup width; the card inside is centred vertically. */
 #login-screen {
   display: flex;
   align-items: center;
@@ -341,14 +280,12 @@ button {
   gap: 0.45rem;
 }
 
-/* Make email/password inputs full-width inside the login card */
 #login-screen input[type="email"],
 #login-screen input[type="password"] {
   width: 100%;
   flex: none;
 }
 
-/* Red error box below the title */
 .login-error {
   background: rgba(220, 38, 38, 0.12);
   border: 1px solid #dc2626;
@@ -361,7 +298,6 @@ button {
 
 .login-error.hidden { display: none; }
 
-/* Small hint below the button — tells users to register in the web app */
 .login-hint {
   font-size: 10px;
   color: #475569;
@@ -375,22 +311,6 @@ button {
   padding: 1px 4px;
   border-radius: 3px;
 }
-
-/* ── Footer user bar ──────────────────────────────────────────────────── */
-/* Shows the logged-in email address, truncated if long */
-.footer-email {
-  flex: 1;
-  font-size: 10px;
-  color: #475569;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 120px;
-}
-
-/* Dimmed logout button — same style as btn-link but greyer */
-.btn-link--dim       { color: #475569; }
-.btn-link--dim:hover { color: #f87171; text-decoration: none; }
 
 /* ── Utility ──────────────────────────────────────────────────────────── */
 .hidden { display: none !important; }

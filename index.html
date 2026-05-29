@@ -514,27 +514,10 @@
     <input type="text" id="new-list-name" placeholder="List name…" style="width:210px;" />
     <button class="btn-primary"   id="create-btn">+ Create List</button>
     <button class="btn-secondary" id="snapshot-btn">⊞ Snapshot Tabs</button>
-    <button class="btn-secondary" id="paste-import-btn">⬆ Import</button>
   </div>
 
   <!-- ── List cards render here ── -->
   <div id="lists-container" class="lists-grid"></div>
-
-  <!-- ── Paste-import modal ── -->
-  <div id="paste-import-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
-    <div class="modal">
-      <h2>Import from Extension</h2>
-      <p class="tip">
-        In the extension popup click <strong>⬇ Export</strong>, pick a list, then
-        click <strong>Copy Token</strong>. Paste it here.
-      </p>
-      <textarea id="paste-import-text" placeholder="Paste token here…" style="height:80px;word-break:break-all;"></textarea>
-      <div class="modal-actions">
-        <button class="btn-secondary" id="paste-import-cancel">Cancel</button>
-        <button class="btn-primary"   id="paste-import-confirm">Import</button>
-      </div>
-    </div>
-  </div>
 
   <!-- ── Snapshot / bulk-import modal ── -->
   <div id="snapshot-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
@@ -907,42 +890,6 @@ function dismissImportBanner() {
   history.replaceState(null, '', location.pathname + location.search);
 }
 
-// ── Paste-import modal (token from the extension) ─────────────────────────────
-
-function openPasteImportModal() {
-  document.getElementById('paste-import-text').value = '';
-  document.getElementById('paste-import-modal').classList.remove('hidden');
-  document.getElementById('paste-import-text').focus();
-}
-
-function closePasteImportModal() {
-  document.getElementById('paste-import-modal').classList.add('hidden');
-}
-
-async function confirmPasteImport() {
-  const raw = document.getElementById('paste-import-text').value.trim();
-  if (!raw) return;
-  try {
-    const { name, urls } = decodeShareToken(raw);
-    const list = await apiFetch('/lists', {
-      method: 'POST',
-      body: JSON.stringify({ name }),
-    });
-    for (const url of urls) {
-      await apiFetch(`/lists/${list.id}/urls`, {
-        method: 'POST',
-        body: JSON.stringify({ url }),
-      });
-    }
-    closePasteImportModal();
-    await render();
-  } catch {
-    const el = document.getElementById('paste-import-text');
-    el.style.borderColor = '#f87171';
-    setTimeout(() => el.style.borderColor = '', 1500);
-  }
-}
-
 // =============================================================================
 // ERROR TOAST
 // =============================================================================
@@ -1121,17 +1068,6 @@ document.getElementById('snapshot-btn').addEventListener('click', openSnapshotMo
 // ── Import banner ──
 document.getElementById('banner-import-btn').addEventListener('click',  importSharedList);
 document.getElementById('banner-dismiss-btn').addEventListener('click', dismissImportBanner);
-
-// ── Paste-import modal ──
-document.getElementById('paste-import-btn').addEventListener('click',     openPasteImportModal);
-document.getElementById('paste-import-cancel').addEventListener('click',  closePasteImportModal);
-document.getElementById('paste-import-confirm').addEventListener('click', confirmPasteImport);
-document.getElementById('paste-import-text').addEventListener('keydown', e => {
-  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) confirmPasteImport();
-});
-document.getElementById('paste-import-modal').addEventListener('click', e => {
-  if (e.target === e.currentTarget) closePasteImportModal();
-});
 
 // ── Snapshot modal ──
 document.getElementById('modal-cancel').addEventListener('click', closeSnapshotModal);
