@@ -211,6 +211,9 @@
     .btn-open      { background: #059669; color: white; padding: 0.4rem 0.85rem; font-size: 0.8rem; }
     .btn-open:hover { background: #047857; }
 
+    .btn-close     { background: transparent; color: #f87171; border: 1px solid #f87171; padding: 0.4rem 0.85rem; font-size: 0.8rem; }
+    .btn-close:hover { background: #f87171; color: white; }
+
     .btn-share     { background: #1e293b; color: #818cf8; border: 1px solid #4338ca; padding: 0.4rem 0.85rem; font-size: 0.8rem; }
     .btn-share:hover { background: #312e81; color: #c7d2fe; }
     .btn-share:disabled { opacity: 0.6; cursor: default; }
@@ -691,6 +694,10 @@ function logout() {
 // to make an extra API call for data that was already fetched.
 let currentLists = [];
 
+// In-memory map of { [listId]: Window[] } — tracks windows opened by Open All
+// so Close All can close them. Lost on page refresh, which is acceptable.
+const trackedWindows = {};
+
 async function createList(name) {
   name = (name || '').trim() || 'Untitled List';
   await apiFetch('/lists', {
@@ -756,9 +763,37 @@ async function removeUrl(listId, urlId) {
 }
 
 // openAll reads from the cached currentLists so no API call is needed.
+// noopener is omitted so window.open() returns a reference we can close later.
 function openAll(listId) {
   const list = currentLists.find(l => l.id == listId);
-  if (list) list.urls.forEach(u => window.open(u.url, '_blank', 'noopener'));
+  if (!list || list.urls.length === 0) return;
+  trackedWindows[listId] = list.urls
+    .map(u => window.open(u.url, '_blank'))
+    .filter(Boolean); // filter out any the browser blocked
+  renderCards();
+}
+
+function closeAll(listId) {
+  (trackedWindows[listId] || []).forEach(w => { if (w && !w.closed) w.close(); });
+  delete trackedWindows[listId];
+  renderCards();
+}
+
+// Rebuild the card grid from currentLists without fetching from the API.
+// Used after openAll/closeAll where the server data hasn't changed.
+function renderCards() {
+  const container = document.getElementById('lists-container');
+  container.innerHTML = '';
+  if (currentLists.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <h2>No lists yet</h2>
+        <p>Type a name above and click <strong>Create List</strong>,<br>
+           or use <strong>Snapshot Tabs</strong> to bulk-import URLs.</p>
+      </div>`;
+    return;
+  }
+  currentLists.forEach(list => container.appendChild(buildCard(list)));
 }
 
 // =============================================================================
@@ -966,7 +1001,10 @@ function buildCard(list) {
       <span class="url-count">${count} URL${count !== 1 ? 's' : ''}</span>
       <div style="display:flex;gap:0.4rem;">
         <button class="btn-share share-btn" data-list="${list.id}">Share</button>
-        <button class="btn-open  open-all-btn" data-list="${list.id}">Open All ↗</button>
+        ${(trackedWindows[list.id] || []).length > 0
+          ? `<button class="btn-close close-all-btn" data-list="${list.id}">Close All</button>`
+          : `<button class="btn-open open-all-btn" data-list="${list.id}">Open All ↗</button>`
+        }
       </div>
     </div>
   `;
@@ -986,17 +1024,7 @@ async function render() {
   const container = document.getElementById('lists-container');
   container.innerHTML = '';
 
-  if (currentLists.length === 0) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <h2>No lists yet</h2>
-        <p>Type a name above and click <strong>Create List</strong>,<br>
-           or use <strong>Snapshot Tabs</strong> to bulk-import URLs.</p>
-      </div>`;
-    return;
-  }
-
-  currentLists.forEach(list => container.appendChild(buildCard(list)));
+  renderCards();
 }
 
 // =============================================================================
@@ -1030,6 +1058,8 @@ document.getElementById('lists-container').addEventListener('click', async e => 
     await removeUrl(btn.dataset.list, btn.dataset.url);
   } else if (btn.classList.contains('open-all-btn')) {
     openAll(btn.dataset.list);
+  } else if (btn.classList.contains('close-all-btn')) {
+    closeAll(btn.dataset.list);
   } else if (btn.classList.contains('share-btn')) {
     shareList(btn.dataset.list);
   }
