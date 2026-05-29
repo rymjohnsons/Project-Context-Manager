@@ -10,7 +10,7 @@
   ],
 
   "host_permissions": [
-    "http://localhost:8000/*"
+    "https://web-production-b9ae2.up.railway.app/*"
   ],
 
   "action": {

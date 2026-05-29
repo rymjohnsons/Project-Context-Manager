@@ -22,7 +22,7 @@
 // CONFIGURATION
 // Change API_BASE when you deploy to a real server.
 // =============================================================================
-const API_BASE = 'http://localhost:8000';
+const API_BASE = 'https://web-production-b9ae2.up.railway.app';
 
 // chrome.storage.local keys
 const TOKEN_KEY    = 'projectContextManager_token';     // JWT string
