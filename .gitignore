@@ -1,0 +1,33 @@
+# ── Python ────────────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# ── Environment files ─────────────────────────────────────────────────────────
+# .env contains real secrets — never commit it.
+# .env.example is the safe template and IS committed.
+.env
+*.env
+!*.env.example
+
+# ── Database ──────────────────────────────────────────────────────────────────
+# SQLite database file — data lives on the server, not in git.
+*.db
+*.sqlite3
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.suo
+*.user
+
+# ── OS ────────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db

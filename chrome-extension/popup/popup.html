@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Project Context Manager</title>
+  <!--
+    Chrome's Content Security Policy for extensions forbids inline <script> blocks
+    and inline event handlers (onclick="..."). All JavaScript must live in popup.js.
+    Inline styles are fine.
+  -->
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+
+  <!-- ── Login screen ────────────────────────────────────────────────────────
+       Shown when the user has no stored JWT token (not logged in).
+       Hidden once login succeeds. The main-ui div below is the inverse.
+  ──────────────────────────────────────────────────────────────────────────── -->
+  <div id="login-screen">
+    <div class="login-card">
+      <h2 class="login-title">Project <span>Context</span> Manager</h2>
+
+      <!-- Error message — hidden until something goes wrong -->
+      <div id="login-error" class="login-error hidden"></div>
+
+      <div class="login-form">
+        <input type="email"    id="login-email"    placeholder="Email address" autocomplete="email" />
+        <input type="password" id="login-password" placeholder="Password"      autocomplete="current-password" />
+        <button id="login-btn" class="btn-primary full-width">Log In</button>
+      </div>
+
+      <p class="login-hint">
+        No account? Register at<br>
+        <code>localhost:8000/app</code>
+      </p>
+    </div>
+  </div>
+
+  <!-- ── Main UI — hidden until the user logs in ─────────────────────────────
+       Everything below is the same as before, wrapped in this div so we can
+       show/hide it as a unit when auth state changes.
+  ──────────────────────────────────────────────────────────────────────────── -->
+  <div id="main-ui" class="hidden">
+
+    <!-- ── Current tab bar ──────────────────────────────────────────────────
+         Shows the active page's URL. The green badge appears if this URL
+         is already saved in one of your lists.
+    ──────────────────────────────────────────────────────────────────────── -->
+    <div class="tab-bar">
+      <span id="current-tab-url" class="tab-url">Loading…</span>
+      <span id="current-tab-badge" class="tab-badge hidden">✓ Saved</span>
+    </div>
+
+    <!-- ── Quick-add ────────────────────────────────────────────────────────
+         Pick a list from the dropdown, then click "Add Tab" to save the
+         current page's full URL (query params, hash and all).
+    ──────────────────────────────────────────────────────────────────────── -->
+    <div class="section">
+      <select id="list-select">
+        <option value="">— select a list —</option>
+      </select>
+      <button id="add-btn" class="btn-primary">Add Tab</button>
+    </div>
+
+    <!-- ── Create a new list ────────────────────────────────────────────────
+         The form is hidden until "+ New List" is clicked.
+    ──────────────────────────────────────────────────────────────────────── -->
+    <div class="section" style="padding-top:0.35rem;padding-bottom:0.35rem;">
+      <button id="new-list-btn"  class="btn-secondary" style="flex:1">+ New List</button>
+      <button id="snapshot-btn" class="btn-secondary" style="flex:1">⊞ Snapshot Tabs</button>
+    </div>
+
+    <div id="new-list-form" class="section hidden">
+      <input type="text" id="new-list-name" placeholder="List name…" />
+      <button id="create-list-btn" class="btn-primary">Create</button>
+      <button id="cancel-new-list-btn" class="btn-icon" title="Cancel">✕</button>
+    </div>
+
+    <!-- ── Status toast ─────────────────────────────────────────────────────
+         Appears briefly (2 s) after actions like "Added!" or "Copied!".
+         role="status" tells screen readers to announce it automatically.
+    ──────────────────────────────────────────────────────────────────────── -->
+    <div id="status-toast" class="status-toast hidden" role="status"></div>
+
+    <!-- ── All lists ────────────────────────────────────────────────────────
+         Built dynamically by popup.js. Each card shows the list name,
+         URL count, an "Open All" button, the URL entries, and a delete button.
+         The card gets a purple left border if the current tab is in that list.
+    ──────────────────────────────────────────────────────────────────────── -->
+    <div id="lists-container" class="lists-container"></div>
+
+    <!-- ── Footer: logged-in user + Import / Export ─────────────────────────
+         Shows the logged-in email on the left, and the sync buttons on the right.
+         The logout button sits at the far right.
+    ──────────────────────────────────────────────────────────────────────── -->
+    <div class="footer">
+      <span id="user-email-label" class="footer-email"></span>
+      <button id="import-btn" class="btn-link">⬆ Import</button>
+      <button id="export-btn" class="btn-link">⬇ Export</button>
+      <button id="logout-btn" class="btn-link btn-link--dim" title="Log out">↩</button>
+    </div>
+
+    <!-- ── Import panel ─────────────────────────────────────────────────────
+         Paste the token from the web app's "Share" button, or the full
+         #share=… URL fragment. The extension strips the prefix automatically.
+    ──────────────────────────────────────────────────────────────────────── -->
+    <div id="import-panel" class="panel hidden">
+      <p class="panel-label">
+        Paste a share token from the web app's <strong>Share</strong> button:
+      </p>
+      <textarea id="import-text" placeholder="eyJ… or #share=eyJ…"></textarea>
+      <div class="panel-actions">
+        <button id="import-cancel-btn" class="btn-secondary">Cancel</button>
+        <button id="import-confirm-btn" class="btn-primary">Import</button>
+      </div>
+    </div>
+
+    <!-- ── Export panel ─────────────────────────────────────────────────────
+         Generates a token from one of your lists. Paste it into the web
+         app's "⬆ Import" flow.
+    ──────────────────────────────────────────────────────────────────────── -->
+    <div id="export-panel" class="panel hidden">
+      <p class="panel-label">
+        Select a list to generate a share token:
+      </p>
+      <select id="export-list-select">
+        <option value="">— select a list —</option>
+      </select>
+      <textarea id="export-text" readonly placeholder="Token will appear here…"></textarea>
+      <div class="panel-actions">
+        <button id="export-close-btn" class="btn-secondary">Close</button>
+        <button id="copy-export-btn" class="btn-primary">Copy Token</button>
+      </div>
+    </div>
+
+  </div><!-- /#main-ui -->
+
+  <!-- popup.js must be a separate file (no inline scripts allowed by CSP) -->
+  <script src="popup.js"></script>
+</body>
+</html>
