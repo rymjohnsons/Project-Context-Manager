@@ -1,1 +1,8 @@
--r backend/requirements.txt
+fastapi
+uvicorn[standard]
+sqlalchemy
+python-jose[cryptography]
+bcrypt
+pydantic[email]
+psycopg2-binary
+python-dotenv
