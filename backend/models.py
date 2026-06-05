@@ -10,7 +10,7 @@
 #   urls   — one row per URL (belongs to a list)
 
 from datetime import datetime, timezone
-from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import Boolean, Column, Integer, String, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 
 from database import Base
@@ -40,6 +40,7 @@ class List(Base):
 
     id         = Column(Integer, primary_key=True, index=True)
     name       = Column(String, nullable=False)
+    starred    = Column(Boolean, default=False, nullable=False)
     owner_id   = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime(timezone=True), default=utcnow)
 

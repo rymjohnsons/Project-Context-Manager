@@ -5,20 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Project Context Manager</title>
   <style>
-    /* ── Reset & base ── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: #0f172a;
       color: #e2e8f0;
-      min-height: 100vh;
+      height: 100vh;
+      overflow: hidden;
     }
 
-    /* ── Auth overlay ─────────────────────────────────────────────────────────
-       Covers the full screen before the user logs in.
-       Hidden once the user is authenticated.
-    ── */
+    /* ── Auth overlay ── */
     .auth-overlay {
       position: fixed;
       inset: 0;
@@ -29,7 +26,6 @@
       z-index: 1000;
       padding: 1rem;
     }
-
     .auth-overlay.hidden { display: none; }
 
     .auth-card {
@@ -43,170 +39,257 @@
       flex-direction: column;
       gap: 1.1rem;
     }
-
-    .auth-card h1 {
-      font-size: 1.5rem;
-      font-weight: 700;
-      color: #f1f5f9;
-      letter-spacing: -0.02em;
-      text-align: center;
-    }
-
+    .auth-card h1 { font-size: 1.5rem; font-weight: 700; color: #f1f5f9; letter-spacing: -0.02em; text-align: center; }
     .auth-card h1 span { color: #6366f1; }
+    .auth-subtitle { font-size: 0.8rem; color: #64748b; text-align: center; margin-top: -0.5rem; }
 
-    .auth-subtitle {
-      font-size: 0.8rem;
-      color: #64748b;
-      text-align: center;
-      margin-top: -0.5rem;
-    }
-
-    /* Login / Register tab switcher */
-    .auth-tabs {
-      display: flex;
-      background: #0f172a;
-      border-radius: 7px;
-      padding: 3px;
-      gap: 3px;
-    }
-
+    .auth-tabs { display: flex; background: #0f172a; border-radius: 7px; padding: 3px; gap: 3px; }
     .auth-tab {
-      flex: 1;
-      background: transparent;
-      border: none;
-      color: #64748b;
-      padding: 0.45rem;
-      border-radius: 5px;
-      font-size: 0.82rem;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background 0.12s, color 0.12s;
+      flex: 1; background: transparent; border: none; color: #64748b;
+      padding: 0.45rem; border-radius: 5px; font-size: 0.82rem; font-weight: 500;
+      cursor: pointer; transition: background 0.12s, color 0.12s; font-family: inherit;
     }
-
-    .auth-tab.active {
-      background: #1e293b;
-      color: #f1f5f9;
-    }
-
+    .auth-tab.active { background: #1e293b; color: #f1f5f9; }
     .auth-tab:hover:not(.active) { color: #94a3b8; }
 
-    /* Auth error message */
     .auth-error {
-      background: rgba(220, 38, 38, 0.12);
-      border: 1px solid #dc2626;
-      border-radius: 6px;
-      color: #fca5a5;
-      font-size: 0.8rem;
-      padding: 0.6rem 0.75rem;
-      line-height: 1.4;
+      background: rgba(220, 38, 38, 0.12); border: 1px solid #dc2626;
+      border-radius: 6px; color: #fca5a5; font-size: 0.8rem; padding: 0.6rem 0.75rem; line-height: 1.4;
     }
-
     .auth-error.hidden { display: none; }
+    .auth-form { display: flex; flex-direction: column; gap: 0.6rem; }
 
-    /* Auth form fields */
-    .auth-form {
-      display: flex;
-      flex-direction: column;
-      gap: 0.6rem;
-    }
-
-    /* ── Header ── */
-    header {
-      padding: 1.5rem 2rem 0;
-      margin-bottom: 1.5rem;
-    }
-
-    .header-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 1rem;
-      flex-wrap: wrap;
-    }
-
-    h1 {
-      font-size: 1.6rem;
-      font-weight: 700;
-      color: #f1f5f9;
-      letter-spacing: -0.02em;
-    }
-
-    h1 span { color: #6366f1; }
-
-    /* User bar: shows logged-in email and logout button */
-    .user-bar {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-    }
-
-    .user-email {
-      font-size: 0.8rem;
-      color: #64748b;
-      max-width: 220px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    /* ── Main app padding ── */
-    #app {
-      padding: 0 2rem 2rem;
-    }
-
+    /* ── App layout ── */
+    #app { display: flex; height: 100vh; }
     #app.hidden { display: none; }
 
-    /* ── Toolbar ── */
-    .toolbar {
+    /* ── Sidebar ── */
+    .sidebar {
+      width: 240px;
+      min-width: 240px;
+      background: #0d1424;
+      border-right: 1px solid #1a2234;
       display: flex;
-      gap: 0.6rem;
-      margin-bottom: 2rem;
-      flex-wrap: wrap;
-      align-items: center;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
     }
 
-    /* ── Inputs ── */
+    .sidebar-brand {
+      padding: 1.1rem 1rem;
+      border-bottom: 1px solid #1a2234;
+      flex-shrink: 0;
+    }
+    .brand-name { font-size: 0.9rem; font-weight: 700; color: #f1f5f9; letter-spacing: -0.02em; }
+    .brand-name span { color: #6366f1; }
+    .brand-sub { font-size: 0.65rem; color: #334155; margin-top: 1px; letter-spacing: 0.02em; }
+
+    .sidebar-scroll { flex: 1; overflow-y: auto; padding: 0.5rem 0; }
+    .sidebar-scroll::-webkit-scrollbar { width: 3px; }
+    .sidebar-scroll::-webkit-scrollbar-thumb { background: #1a2234; border-radius: 3px; }
+
+    /* Nav sections */
+    .nav-section { padding: 0.6rem 0 0.25rem; }
+    .nav-section-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 0.85rem 0.35rem;
+    }
+    .nav-section-label {
+      font-size: 0.63rem; font-weight: 600; color: #334155;
+      letter-spacing: 0.08em; text-transform: uppercase;
+    }
+    .nav-add-btn {
+      background: transparent; border: none; color: #334155;
+      font-size: 1rem; line-height: 1; cursor: pointer; padding: 0 0.1rem;
+      border-radius: 3px; transition: color 0.1s; font-family: inherit;
+    }
+    .nav-add-btn:hover { color: #6366f1; }
+
+    /* Inline new-list form */
+    .sidebar-new-list { padding: 0.25rem 0.75rem 0.6rem; display: flex; flex-direction: column; gap: 0.35rem; }
+    .sidebar-new-list input {
+      background: #1e293b; border: 1px solid #334155; color: #e2e8f0;
+      padding: 0.35rem 0.5rem; border-radius: 5px; font-size: 0.78rem;
+      outline: none; font-family: inherit; width: 100%;
+    }
+    .sidebar-new-list input:focus { border-color: #6366f1; }
+    .sidebar-new-list input::placeholder { color: #475569; }
+    .sidebar-form-row { display: flex; gap: 0.35rem; }
+
+    /* Nav list items */
+    .nav-item {
+      display: flex; align-items: center; gap: 0.4rem;
+      padding: 0.42rem 0.85rem; cursor: pointer;
+      border-left: 2px solid transparent;
+      transition: background 0.1s;
+    }
+    .nav-item:hover { background: #111f36; }
+    .nav-item--active { background: #111f36; border-left-color: #6366f1; }
+    .nav-item-name {
+      flex: 1; font-size: 0.8rem; color: #94a3b8;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .nav-item--active .nav-item-name { color: #e2e8f0; }
+    .nav-item-count {
+      font-size: 0.66rem; color: #334155; background: #131e30;
+      padding: 1px 5px; border-radius: 3px; flex-shrink: 0;
+    }
+
+    .nav-empty-hint {
+      font-size: 0.74rem; color: #1f2937; padding: 0.25rem 0.85rem 0.5rem;
+      font-style: italic;
+    }
+    .nav-coming-soon {
+      font-size: 0.74rem; color: #1f2937; padding: 0.25rem 0.85rem 0.5rem;
+      font-style: italic;
+    }
+
+    /* Sidebar footer */
+    .sidebar-footer { border-top: 1px solid #1a2234; flex-shrink: 0; padding: 0.5rem 0; }
+
+    .sidebar-footer-btn {
+      display: flex; align-items: center; gap: 0.5rem; width: 100%;
+      padding: 0.42rem 0.85rem; background: transparent; border: none;
+      border-left: 2px solid transparent; color: #475569; font-size: 0.8rem;
+      cursor: pointer; text-align: left; font-family: inherit; transition: background 0.1s, color 0.1s;
+    }
+    .sidebar-footer-btn:hover { background: #111f36; color: #64748b; }
+    .sidebar-footer-btn.snapshot { color: #4f46e5; }
+    .sidebar-footer-btn.snapshot:hover { color: #818cf8; background: #111f36; }
+
+    .sidebar-placeholder {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.42rem 0.85rem; font-size: 0.8rem; color: #1f2937; cursor: not-allowed;
+    }
+
+    .sidebar-user {
+      display: flex; align-items: center; gap: 0.4rem;
+      padding: 0.6rem 0.85rem 0.25rem; border-top: 1px solid #1a2234; margin-top: 0.25rem;
+    }
+    .user-email-label {
+      flex: 1; font-size: 0.7rem; color: #334155;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .btn-logout {
+      background: transparent; border: none; color: #334155; font-size: 0.7rem;
+      cursor: pointer; padding: 0.2rem 0.35rem; border-radius: 4px; font-family: inherit; transition: color 0.1s;
+    }
+    .btn-logout:hover { color: #f87171; }
+
+    /* ── Main content ── */
+    .main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+
+    /* Import banner */
+    .import-banner {
+      display: flex; align-items: center; gap: 1rem;
+      background: #1e1b4b; border-bottom: 1px solid #4338ca;
+      padding: 0.9rem 1.5rem; flex-wrap: wrap; flex-shrink: 0;
+    }
+    .import-banner.hidden { display: none; }
+    .import-banner-text { flex: 1; min-width: 0; }
+    .import-banner-text strong { color: #c7d2fe; font-size: 0.88rem; display: block; }
+    .import-banner-text p { font-size: 0.76rem; color: #818cf8; margin-top: 0.2rem; }
+    .import-banner-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
+
+    /* Welcome state */
+    .welcome-state { flex: 1; display: flex; align-items: center; justify-content: center; }
+    .welcome-state.hidden { display: none; }
+    .welcome-inner { text-align: center; }
+    .welcome-icon { font-size: 2.5rem; margin-bottom: 1rem; opacity: 0.2; }
+    .welcome-inner h2 { font-size: 1rem; color: #334155; font-weight: 500; margin-bottom: 0.35rem; }
+    .welcome-inner p { font-size: 0.8rem; color: #1f2937; }
+
+    /* List detail panel */
+    .list-detail {
+      flex: 1; display: flex; flex-direction: column; overflow: hidden;
+      padding: 2rem 2.5rem 1.5rem;
+    }
+    .list-detail.hidden { display: none; }
+
+    .detail-header { flex-shrink: 0; margin-bottom: 1.25rem; }
+
+    .detail-title-row {
+      display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.9rem;
+    }
+    input.detail-name-input {
+      flex: 1; font-size: 1.4rem; font-weight: 700; color: #f1f5f9;
+      background: transparent; border: 1px solid transparent; border-radius: 6px;
+      padding: 0.2rem 0.4rem; margin-left: -0.4rem; font-family: inherit;
+      outline: none; transition: border-color 0.15s, background 0.15s; width: auto;
+    }
+    input.detail-name-input:hover { border-color: #1f2937; }
+    input.detail-name-input:focus { border-color: #6366f1; background: #1e293b; }
+
+    .detail-url-count {
+      font-size: 0.74rem; color: #475569; background: #1e293b;
+      padding: 0.2rem 0.6rem; border-radius: 4px; white-space: nowrap; flex-shrink: 0;
+    }
+
+    .detail-action-bar { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+    /* URL list */
+    .detail-url-list {
+      flex: 1; overflow-y: auto; list-style: none;
+      display: flex; flex-direction: column; gap: 0.3rem;
+      padding-right: 4px; margin-bottom: 1rem;
+    }
+    .detail-url-list::-webkit-scrollbar { width: 4px; }
+    .detail-url-list::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 4px; }
+
+    .detail-url-item {
+      display: flex; align-items: center; gap: 0.6rem;
+      padding: 0.55rem 0.85rem; background: #131e30;
+      border: 1px solid #1a2234; border-radius: 8px; transition: border-color 0.1s;
+    }
+    .detail-url-item:hover { border-color: #334155; }
+
+    .detail-url-link {
+      flex: 1; color: #7dd3fc; text-decoration: none; font-size: 0.83rem;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
+    }
+    .detail-url-link:hover { text-decoration: underline; color: #bae6fd; }
+
+    .detail-remove-url {
+      background: transparent; border: none; color: #1f2937;
+      font-size: 1.1rem; padding: 0; line-height: 1; cursor: pointer;
+      flex-shrink: 0; transition: color 0.1s; font-family: inherit;
+    }
+    .detail-remove-url:hover { color: #f87171; }
+
+    .detail-empty {
+      color: #334155; font-size: 0.83rem; font-style: italic; padding: 1.5rem 0;
+    }
+
+    /* Add URL row */
+    .detail-add-row { display: flex; gap: 0.5rem; flex-shrink: 0; }
+    .detail-add-row input { flex: 1; }
+
+    /* ── Inputs (global) ── */
     input[type="text"],
     input[type="email"],
     input[type="password"] {
-      background: #1e293b;
-      border: 1px solid #334155;
-      color: #e2e8f0;
-      padding: 0.5rem 0.75rem;
-      border-radius: 6px;
-      font-size: 0.875rem;
-      outline: none;
-      transition: border-color 0.15s;
-      width: 100%;
+      background: #1e293b; border: 1px solid #334155; color: #e2e8f0;
+      padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.875rem;
+      outline: none; transition: border-color 0.15s; font-family: inherit; width: 100%;
     }
-
     input[type="text"]:focus,
     input[type="email"]:focus,
     input[type="password"]:focus { border-color: #6366f1; }
-
     input::placeholder { color: #475569; }
 
-    /* ── Buttons ── */
+    /* ── Buttons (global) ── */
     button {
-      cursor: pointer;
-      border: none;
-      border-radius: 6px;
-      font-size: 0.875rem;
-      font-weight: 500;
-      padding: 0.5rem 1rem;
-      transition: background 0.15s, opacity 0.15s, color 0.15s;
+      cursor: pointer; border: none; border-radius: 6px; font-size: 0.875rem;
+      font-weight: 500; padding: 0.5rem 1rem; transition: background 0.15s, color 0.15s;
+      font-family: inherit;
     }
-
     button:disabled { opacity: 0.55; cursor: default; }
 
-    .btn-primary   { background: #6366f1; color: white; }
+    .btn-primary { background: #6366f1; color: white; }
     .btn-primary:hover:not(:disabled) { background: #4f46e5; }
 
     .btn-secondary { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
     .btn-secondary:hover:not(:disabled) { background: #334155; color: #e2e8f0; }
-
-    .btn-danger    { background: transparent; color: #f87171; border: 1px solid transparent; padding: 0.25rem 0.45rem; font-size: 0.8rem; }
-    .btn-danger:hover { background: #f87171; color: white; }
 
     .btn-open      { background: #059669; color: white; padding: 0.4rem 0.85rem; font-size: 0.8rem; }
     .btn-open:hover { background: #047857; }
@@ -214,270 +297,80 @@
     .btn-close     { background: transparent; color: #f87171; border: 1px solid #f87171; padding: 0.4rem 0.85rem; font-size: 0.8rem; }
     .btn-close:hover { background: #f87171; color: white; }
 
-    .btn-share     { background: #1e293b; color: #818cf8; border: 1px solid #4338ca; padding: 0.4rem 0.85rem; font-size: 0.8rem; }
-    .btn-share:hover { background: #312e81; color: #c7d2fe; }
+    .btn-share     { background: #1e293b; color: #818cf8; border: 1px solid #312e81; padding: 0.4rem 0.85rem; font-size: 0.8rem; }
+    .btn-share:hover { background: #1e1b4b; color: #c7d2fe; }
     .btn-share:disabled { opacity: 0.6; cursor: default; }
 
-    /* ── Import banner ── */
-    .import-banner {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
-      background: #1e1b4b;
-      border: 1px solid #4338ca;
-      border-radius: 10px;
-      padding: 0.9rem 1.25rem;
-      margin-bottom: 1.5rem;
-      flex-wrap: wrap;
-    }
+    .btn-danger-outline { background: transparent; color: #64748b; border: 1px solid transparent; padding: 0.4rem 0.75rem; font-size: 0.8rem; }
+    .btn-danger-outline:hover { color: #f87171; border-color: #f87171; }
 
-    .import-banner.hidden { display: none; }
+    .btn-star        { background: transparent; color: #475569; border: 1px solid transparent; padding: 0.4rem 0.75rem; font-size: 0.8rem; }
+    .btn-star:hover  { color: #fbbf24; border-color: #fbbf24; }
+    .btn-star.starred { color: #fbbf24; }
 
-    .import-banner-text { flex: 1; min-width: 0; }
-    .import-banner-text strong { color: #c7d2fe; font-size: 0.9rem; display: block; }
-    .import-banner-text p { font-size: 0.78rem; color: #818cf8; margin-top: 0.2rem; }
-
-    .import-banner-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
+    .nav-item-star { font-size: 0.7rem; flex-shrink: 0; color: #fbbf24; }
 
     .btn-import  { background: #4f46e5; color: white; padding: 0.4rem 0.85rem; font-size: 0.8rem; }
     .btn-import:hover { background: #4338ca; }
 
-    .btn-dismiss { background: transparent; color: #64748b; border: 1px solid #334155; padding: 0.4rem 0.7rem; font-size: 0.8rem; }
+    .btn-dismiss { background: transparent; color: #475569; border: 1px solid #334155; padding: 0.4rem 0.7rem; font-size: 0.8rem; }
     .btn-dismiss:hover { background: #1e293b; color: #94a3b8; }
 
-    /* ── Lists grid ── */
-    .lists-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-      gap: 1.25rem;
-      align-items: start;
-    }
+    .btn-sm-primary   { background: #6366f1; color: white; font-size: 0.74rem; padding: 0.28rem 0.55rem; }
+    .btn-sm-primary:hover { background: #4f46e5; }
+    .btn-sm-secondary { background: transparent; color: #475569; font-size: 0.74rem; padding: 0.28rem 0.5rem; }
+    .btn-sm-secondary:hover { color: #94a3b8; }
 
-    /* ── List card ── */
-    .list-card {
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 10px;
-      padding: 1.1rem 1.25rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.75rem;
-    }
-
-    .list-card-header {
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
-    }
-
-    .list-name-input {
-      flex: 1;
-      font-size: 0.95rem;
-      font-weight: 600;
-      background: transparent;
-      border: 1px solid transparent;
-      border-radius: 4px;
-      padding: 0.2rem 0.35rem;
-      color: #f1f5f9;
-      min-width: 0;
-      width: auto;
-    }
-
-    .list-name-input:focus {
-      border-color: #6366f1;
-      background: #0f172a;
-      outline: none;
-    }
-
-    /* ── URL list ── */
-    .url-list {
-      list-style: none;
-      display: flex;
-      flex-direction: column;
-      gap: 0.35rem;
-      max-height: 230px;
-      overflow-y: auto;
-      padding-right: 2px;
-    }
-
-    .url-list::-webkit-scrollbar { width: 4px; }
-    .url-list::-webkit-scrollbar-track { background: transparent; }
-    .url-list::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-
-    .url-item {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
-      padding: 0.35rem 0.5rem;
-      background: #0f172a;
-      border-radius: 6px;
-      font-size: 0.78rem;
-    }
-
-    .url-item a {
-      flex: 1;
-      color: #93c5fd;
-      text-decoration: none;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .url-item a:hover { text-decoration: underline; }
-
-    .remove-url {
-      background: transparent;
-      border: none;
-      color: #334155;
-      font-size: 1rem;
-      padding: 0;
-      line-height: 1;
-      cursor: pointer;
-      flex-shrink: 0;
-      transition: color 0.1s;
-    }
-
-    .remove-url:hover { color: #f87171; }
-
-    /* ── Add URL row ── */
-    .add-url-row {
-      display: flex;
-      gap: 0.4rem;
-    }
-
-    .add-url-row input {
-      flex: 1;
-      font-size: 0.78rem;
-      padding: 0.38rem 0.6rem;
-      width: auto;
-    }
-
-    .add-url-row button {
-      padding: 0.38rem 0.65rem;
-      background: #334155;
-      color: #94a3b8;
-      font-size: 0.8rem;
-    }
-
-    .add-url-row button:hover { background: #475569; color: white; }
-
-    /* ── Card footer ── */
-    .list-actions {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding-top: 0.5rem;
-      border-top: 1px solid #263248;
-    }
-
-    .url-count { font-size: 0.72rem; color: #64748b; }
-
-    /* ── Empty state ── */
-    .empty-state {
-      grid-column: 1 / -1;
-      text-align: center;
-      padding: 5rem 2rem;
-      color: #475569;
-    }
-
-    .empty-state h2 { font-size: 1.1rem; margin-bottom: 0.5rem; color: #64748b; }
-    .empty-state p  { font-size: 0.875rem; line-height: 1.6; }
-
-    /* ── Modal overlay ── */
+    /* ── Modal ── */
     .modal-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.65);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 200;
+      position: fixed; inset: 0; background: rgba(0,0,0,0.65);
+      display: flex; align-items: center; justify-content: center; z-index: 200;
     }
-
     .modal-overlay.hidden { display: none; }
-
     .modal {
-      background: #1e293b;
-      border: 1px solid #334155;
-      border-radius: 12px;
-      padding: 1.5rem;
-      width: 500px;
-      max-width: 95vw;
-      display: flex;
-      flex-direction: column;
-      gap: 0.9rem;
+      background: #1e293b; border: 1px solid #334155; border-radius: 12px;
+      padding: 1.5rem; width: 520px; max-width: 95vw;
+      display: flex; flex-direction: column; gap: 0.9rem;
     }
-
-    .modal h2  { font-size: 1rem; color: #f1f5f9; }
-    .modal p   { font-size: 0.8rem; color: #94a3b8; line-height: 1.6; }
+    .modal h2 { font-size: 1rem; color: #f1f5f9; }
+    .modal p  { font-size: 0.8rem; color: #94a3b8; line-height: 1.6; }
     .modal .tip { background: #0f172a; border-left: 3px solid #6366f1; padding: 0.6rem 0.75rem; border-radius: 0 6px 6px 0; }
-
     .modal textarea {
-      background: #0f172a;
-      border: 1px solid #334155;
-      border-radius: 6px;
-      color: #e2e8f0;
-      font-family: 'Courier New', monospace;
-      font-size: 0.78rem;
-      padding: 0.75rem;
-      resize: vertical;
-      height: 190px;
-      outline: none;
-      width: 100%;
+      background: #0f172a; border: 1px solid #334155; border-radius: 6px;
+      color: #e2e8f0; font-family: 'Courier New', monospace; font-size: 0.78rem;
+      padding: 0.75rem; resize: vertical; height: 190px; outline: none; width: 100%;
     }
-
     .modal textarea:focus { border-color: #6366f1; }
     .modal textarea::placeholder { color: #475569; }
-
-    .modal-actions {
-      display: flex;
-      gap: 0.5rem;
-      justify-content: flex-end;
-    }
+    .modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
 
     /* ── Error toast ── */
     .error-toast {
-      position: fixed;
-      bottom: 1.5rem;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #dc2626;
-      color: white;
-      padding: 0.6rem 1.25rem;
-      border-radius: 8px;
-      font-size: 0.85rem;
-      z-index: 999;
-      max-width: 90vw;
-      text-align: center;
-      animation: fadeup 0.2s ease;
+      position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%);
+      background: #dc2626; color: white; padding: 0.6rem 1.25rem;
+      border-radius: 8px; font-size: 0.85rem; z-index: 999;
+      max-width: 90vw; text-align: center; animation: fadeup 0.2s ease;
     }
-
     @keyframes fadeup {
       from { opacity: 0; transform: translateX(-50%) translateY(8px); }
       to   { opacity: 1; transform: translateX(-50%) translateY(0); }
     }
+
+    .hidden { display: none !important; }
   </style>
 </head>
 <body>
 
-<!-- ── Auth overlay ─────────────────────────────────────────────────────────────
-     Shown before login. Hidden once the user authenticates.
-     Sits on top of everything via z-index: 1000.
-──────────────────────────────────────────────────────────────────────────────── -->
+<!-- ── Auth overlay ── -->
 <div id="auth-overlay" class="auth-overlay">
   <div class="auth-card">
     <h1>Project <span>Context</span> Manager</h1>
     <p class="auth-subtitle">Save and open URL lists across sessions.</p>
-
-    <!-- Tab switcher: clicking swaps the form between login and register -->
     <div class="auth-tabs">
       <button id="tab-login"    class="auth-tab active">Log In</button>
       <button id="tab-register" class="auth-tab">Register</button>
     </div>
-
-    <!-- Error message — hidden until something goes wrong -->
     <div id="auth-error" class="auth-error hidden"></div>
-
     <div class="auth-form">
       <input type="email"    id="auth-email"    placeholder="Email address"  autocomplete="email" />
       <input type="password" id="auth-password" placeholder="Password"       autocomplete="current-password" />
@@ -486,87 +379,137 @@
   </div>
 </div>
 
-<!-- ── Main app (hidden until logged in) ─────────────────────────────────────── -->
+<!-- ── Main app ── -->
 <div id="app" class="hidden">
 
-  <header>
-    <div class="header-row">
-      <h1>Project <span>Context</span> Manager</h1>
-      <!-- User bar: shows the logged-in email and a logout button -->
-      <div class="user-bar">
-        <span id="user-email" class="user-email"></span>
-        <button id="logout-btn" class="btn-secondary" style="font-size:0.8rem;padding:0.35rem 0.75rem;">Log out</button>
+  <!-- Sidebar -->
+  <nav class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-name">Project <span>Context</span></div>
+      <div class="brand-sub">URL LIST MANAGER</div>
+    </div>
+
+    <div class="sidebar-scroll">
+
+      <div class="nav-section">
+        <div class="nav-section-header">
+          <span class="nav-section-label">My Lists</span>
+          <button id="new-list-btn" class="nav-add-btn" title="New list">+</button>
+        </div>
+        <div id="new-list-form" class="sidebar-new-list hidden">
+          <input type="text" id="new-list-name" placeholder="List name…" />
+          <div class="sidebar-form-row">
+            <button id="create-list-btn"     class="btn-sm-primary">Create</button>
+            <button id="cancel-new-list-btn" class="btn-sm-secondary">Cancel</button>
+          </div>
+        </div>
+        <div id="sidebar-lists"></div>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-section-header">
+          <span class="nav-section-label">Shared With Me</span>
+        </div>
+        <p class="nav-coming-soon">Coming soon</p>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-section-header">
+          <span class="nav-section-label">Starred</span>
+        </div>
+        <div id="sidebar-starred-lists"></div>
+      </div>
+
+    </div><!-- /.sidebar-scroll -->
+
+    <div class="sidebar-footer">
+      <button id="snapshot-btn" class="sidebar-footer-btn snapshot">⊞ Snapshot Tabs</button>
+      <div class="sidebar-placeholder">⚙ Account Settings</div>
+      <div class="sidebar-placeholder">👤 Account Management</div>
+      <div class="sidebar-user">
+        <span id="user-email" class="user-email-label"></span>
+        <button id="logout-btn" class="btn-logout">Log out</button>
       </div>
     </div>
-  </header>
+  </nav>
 
-  <!-- ── Import banner: shown when opening a share link ── -->
-  <div id="import-banner" class="import-banner hidden" role="alert">
-    <div class="import-banner-text">
-      <strong id="import-banner-title"></strong>
-      <p id="import-banner-desc"></p>
-    </div>
-    <div class="import-banner-actions">
-      <button class="btn-import"  id="banner-import-btn">Add to My Lists</button>
-      <button class="btn-dismiss" id="banner-dismiss-btn">Dismiss</button>
-    </div>
-  </div>
+  <!-- Main content -->
+  <main class="main-content">
 
-  <!-- ── Toolbar ── -->
-  <div class="toolbar">
-    <input type="text" id="new-list-name" placeholder="List name…" style="width:210px;" />
-    <button class="btn-primary"   id="create-btn">+ Create List</button>
-    <button class="btn-secondary" id="snapshot-btn">⊞ Snapshot Tabs</button>
-  </div>
-
-  <!-- ── List cards render here ── -->
-  <div id="lists-container" class="lists-grid"></div>
-
-  <!-- ── Snapshot / bulk-import modal ── -->
-  <div id="snapshot-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-    <div class="modal">
-      <h2 id="modal-title">Snapshot Tabs → New List</h2>
-      <p class="tip">
-        Web pages can't read your open tabs directly — that requires a browser extension.
-        Paste one URL per line below to bulk-import them. Use a browser extension like
-        <em>Tab Copy</em> or <em>Copy All URLs</em> to grab your current tabs first.
-      </p>
-      <input type="text" id="snapshot-list-name" placeholder="List name (e.g. Research – May 27)" />
-      <textarea id="snapshot-urls" placeholder="https://example.com&#10;https://docs.something.dev/guide&#10;…"></textarea>
-      <div class="modal-actions">
-        <button class="btn-secondary" id="modal-cancel">Cancel</button>
-        <button class="btn-primary"   id="modal-import">Import URLs</button>
+    <div id="import-banner" class="import-banner hidden" role="alert">
+      <div class="import-banner-text">
+        <strong id="import-banner-title"></strong>
+        <p id="import-banner-desc"></p>
+      </div>
+      <div class="import-banner-actions">
+        <button class="btn-import"  id="banner-import-btn">Add to My Lists</button>
+        <button class="btn-dismiss" id="banner-dismiss-btn">Dismiss</button>
       </div>
     </div>
-  </div>
 
+    <div id="welcome-state" class="welcome-state">
+      <div class="welcome-inner">
+        <div class="welcome-icon">📋</div>
+        <h2>Select a list from the sidebar</h2>
+        <p>Or click + next to My Lists to create a new one.</p>
+      </div>
+    </div>
+
+    <div id="list-detail" class="list-detail hidden">
+      <div class="detail-header">
+        <div class="detail-title-row">
+          <input type="text" id="detail-list-name" class="detail-name-input" aria-label="List name" />
+          <span id="detail-url-count" class="detail-url-count"></span>
+        </div>
+        <div class="detail-action-bar">
+          <button id="open-all-btn"    class="btn-open">Open All ↗</button>
+          <button id="close-all-btn"   class="btn-close hidden">Close All</button>
+          <button id="star-btn"        class="btn-star">☆ Star</button>
+          <button id="share-btn"       class="btn-share">Share</button>
+          <button id="delete-list-btn" class="btn-danger-outline">Delete List</button>
+        </div>
+      </div>
+
+      <ul id="detail-url-list" class="detail-url-list"></ul>
+
+      <div class="detail-add-row">
+        <input type="text" id="detail-add-url" placeholder="Paste a URL and press Enter…" />
+        <button id="detail-add-btn" class="btn-primary">Add</button>
+      </div>
+    </div>
+
+  </main>
 </div><!-- /#app -->
+
+<!-- Snapshot modal -->
+<div id="snapshot-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal">
+    <h2 id="modal-title">Snapshot Tabs → New List</h2>
+    <p class="tip">
+      Web pages can't read your open tabs directly — that requires a browser extension.
+      Paste one URL per line below to bulk-import them. Use a browser extension like
+      <em>Tab Copy</em> or <em>Copy All URLs</em> to grab your current tabs first.
+    </p>
+    <input type="text" id="snapshot-list-name" placeholder="List name (e.g. Research – Jun 4)" />
+    <textarea id="snapshot-urls" placeholder="https://example.com&#10;https://docs.something.dev/guide&#10;…"></textarea>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="modal-cancel">Cancel</button>
+      <button class="btn-primary"   id="modal-import">Import URLs</button>
+    </div>
+  </div>
+</div>
 
 <script>
 'use strict';
 
-// =============================================================================
-// CONFIGURATION
-// =============================================================================
-
-// The base URL of the FastAPI server. Change this if you run the backend on
-// a different port.
 const API_BASE = 'https://web-production-b9ae2.up.railway.app';
 
-// =============================================================================
-// AUTH — token storage
-//
-// We still use localStorage here, but only to store the JWT token (a small
-// string that proves who you are). The actual list data now lives in the
-// SQLite database on the server, not in the browser.
-// =============================================================================
+// ── Auth token ────────────────────────────────────────────────────────────────
 
-function getToken()    { return localStorage.getItem('pcm_token'); }
-function setToken(t)   { localStorage.setItem('pcm_token', t); }
-function clearToken()  { localStorage.removeItem('pcm_token'); }
+function getToken()   { return localStorage.getItem('pcm_token'); }
+function setToken(t)  { localStorage.setItem('pcm_token', t); }
+function clearToken() { localStorage.removeItem('pcm_token'); }
 
-// apiFetch is the single function all API calls go through.
-// It adds the Authorization header, parses JSON, and handles errors uniformly.
 async function apiFetch(path, options = {}) {
   const token = getToken();
   const res = await fetch(API_BASE + path, {
@@ -579,7 +522,6 @@ async function apiFetch(path, options = {}) {
   });
 
   if (res.status === 401) {
-    // If we have a token it's expired; if not, it's a failed login attempt.
     const hadToken = !!getToken();
     clearToken();
     if (hadToken) showAuthScreen();
@@ -587,12 +529,10 @@ async function apiFetch(path, options = {}) {
     throw new Error(err.detail || (hadToken ? 'Session expired — please log in again.' : 'Incorrect email or password.'));
   }
 
-  // 204 No Content is a success response with no body (used by DELETE).
   if (res.status === 204) return null;
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    // Pydantic validation errors come as an array; pick the first message.
     const detail = Array.isArray(err.detail)
       ? err.detail.map(e => e.msg).join(', ')
       : (err.detail || `Request failed (${res.status})`);
@@ -602,11 +542,9 @@ async function apiFetch(path, options = {}) {
   return res.json();
 }
 
-// =============================================================================
-// AUTH SCREEN MANAGEMENT
-// =============================================================================
+// ── Auth screen ───────────────────────────────────────────────────────────────
 
-let authMode = 'login'; // 'login' | 'register'
+let authMode = 'login';
 
 function showAuthScreen() {
   document.getElementById('auth-overlay').classList.remove('hidden');
@@ -640,33 +578,21 @@ async function submitAuth() {
   const email    = document.getElementById('auth-email').value.trim();
   const password = document.getElementById('auth-password').value;
 
-  if (!email || !password) {
-    setAuthError('Please enter your email and password.');
-    return;
-  }
+  if (!email || !password) { setAuthError('Please enter your email and password.'); return; }
 
   const btn = document.getElementById('auth-submit');
-  btn.disabled    = true;
+  btn.disabled = true;
   btn.textContent = 'Please wait…';
   setAuthError('');
 
   try {
     if (authMode === 'register') {
-      // Create the account first, then fall through to login below.
-      await apiFetch('/users/register', {
-        method: 'POST',
-        body: JSON.stringify({ email, password }),
-      });
+      await apiFetch('/users/register', { method: 'POST', body: JSON.stringify({ email, password }) });
     }
-
-    // Log in to get the token (for both login and post-registration).
     const { access_token } = await apiFetch('/users/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
+      method: 'POST', body: JSON.stringify({ email, password }),
     });
     setToken(access_token);
-
-    // Fetch user profile to confirm the token works and display the email.
     const user = await apiFetch('/users/me');
     showApp(user.email);
     await render();
@@ -675,40 +601,38 @@ async function submitAuth() {
     setAuthError(e.message);
   } finally {
     btn.disabled = false;
-    setAuthMode(authMode); // restore button label
+    setAuthMode(authMode);
   }
 }
 
 function logout() {
   clearToken();
-  document.getElementById('lists-container').innerHTML = '';
+  currentLists = [];
+  selectedListId = null;
   showAuthScreen();
 }
 
-// =============================================================================
-// LIST OPERATIONS — async API calls replace the old localStorage writes
-// =============================================================================
+// ── App state ─────────────────────────────────────────────────────────────────
 
-// Cached copy of the lists returned by the last render().
-// Read-only operations like openAll and shareList use this so they don't need
-// to make an extra API call for data that was already fetched.
-let currentLists = [];
-
-// In-memory map of { [listId]: Window[] } — tracks windows opened by Open All
-// so Close All can close them. Lost on page refresh, which is acceptable.
+let currentLists   = [];
+let selectedListId = null;
 const trackedWindows = {};
+const openedLists    = new Set();
+
+// ── List operations ───────────────────────────────────────────────────────────
 
 async function createList(name) {
   name = (name || '').trim() || 'Untitled List';
-  await apiFetch('/lists', {
-    method: 'POST',
-    body: JSON.stringify({ name }),
-  });
+  const newList = await apiFetch('/lists', { method: 'POST', body: JSON.stringify({ name }) });
+  if (newList && newList.id) selectedListId = newList.id;
   await render();
 }
 
 async function deleteList(id) {
   await apiFetch(`/lists/${id}`, { method: 'DELETE' });
+  openedLists.delete(String(id));
+  delete trackedWindows[id];
+  if (selectedListId == id) selectedListId = null;
   await render();
 }
 
@@ -716,20 +640,15 @@ async function renameList(id, newName) {
   newName = (newName || '').trim();
   if (!newName) return;
   try {
-    await apiFetch(`/lists/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify({ name: newName }),
-    });
-    // Don't call render() here — the input already shows the updated name and
-    // re-rendering would steal focus from the field the user may still be in.
+    await apiFetch(`/lists/${id}`, { method: 'PUT', body: JSON.stringify({ name: newName }) });
+    const nameEl = document.querySelector(`.nav-item[data-id="${id}"] .nav-item-name`);
+    if (nameEl) nameEl.textContent = newName;
   } catch (e) {
     showErrorToast(e.message);
   }
 }
 
-// =============================================================================
-// URL OPERATIONS
-// =============================================================================
+// ── URL operations ────────────────────────────────────────────────────────────
 
 function normaliseUrl(raw) {
   raw = raw.trim();
@@ -742,10 +661,7 @@ async function addUrl(listId, inputEl) {
   const url = normaliseUrl(inputEl.value);
   if (!url) return;
   try {
-    await apiFetch(`/lists/${listId}/urls`, {
-      method: 'POST',
-      body: JSON.stringify({ url }),
-    });
+    await apiFetch(`/lists/${listId}/urls`, { method: 'POST', body: JSON.stringify({ url }) });
     inputEl.value = '';
     await render();
   } catch (e) {
@@ -762,43 +678,114 @@ async function removeUrl(listId, urlId) {
   }
 }
 
-// openAll reads from the cached currentLists so no API call is needed.
-// noopener is omitted so window.open() returns a reference we can close later.
-function openAll(listId) {
-  const list = currentLists.find(l => l.id == listId);
-  if (!list || list.urls.length === 0) return;
-  trackedWindows[listId] = list.urls
-    .map(u => window.open(u.url, '_blank'))
-    .filter(Boolean); // filter out any the browser blocked
-  renderCards();
-}
+// ── Star / Unstar ─────────────────────────────────────────────────────────────
 
-function closeAll(listId) {
-  (trackedWindows[listId] || []).forEach(w => { if (w && !w.closed) w.close(); });
-  delete trackedWindows[listId];
-  renderCards();
-}
-
-// Rebuild the card grid from currentLists without fetching from the API.
-// Used after openAll/closeAll where the server data hasn't changed.
-function renderCards() {
-  const container = document.getElementById('lists-container');
-  container.innerHTML = '';
-  if (currentLists.length === 0) {
-    container.innerHTML = `
-      <div class="empty-state">
-        <h2>No lists yet</h2>
-        <p>Type a name above and click <strong>Create List</strong>,<br>
-           or use <strong>Snapshot Tabs</strong> to bulk-import URLs.</p>
-      </div>`;
-    return;
+async function toggleStar() {
+  const list = currentLists.find(l => l.id == selectedListId);
+  if (!list) return;
+  try {
+    await apiFetch(`/lists/${selectedListId}/star`, {
+      method: 'PATCH',
+      body: JSON.stringify({ starred: !list.starred }),
+    });
+    await render();
+  } catch (e) {
+    showErrorToast(e.message);
   }
-  currentLists.forEach(list => container.appendChild(buildCard(list)));
 }
 
-// =============================================================================
-// SNAPSHOT (BULK IMPORT)
-// =============================================================================
+// ── Open All / Close All ──────────────────────────────────────────────────────
+
+function openAll() {
+  const list = currentLists.find(l => l.id == selectedListId);
+  if (!list || list.urls.length === 0) return;
+  trackedWindows[selectedListId] = list.urls
+    .map(u => window.open(u.url, '_blank'))
+    .filter(Boolean);
+  openedLists.add(String(selectedListId));
+  updateOpenCloseButtons();
+}
+
+function closeAll() {
+  (trackedWindows[selectedListId] || []).forEach(w => { if (w && !w.closed) w.close(); });
+  delete trackedWindows[selectedListId];
+  openedLists.delete(String(selectedListId));
+  updateOpenCloseButtons();
+}
+
+function updateOpenCloseButtons() {
+  const isOpen = openedLists.has(String(selectedListId));
+  document.getElementById('open-all-btn').classList.toggle('hidden', isOpen);
+  document.getElementById('close-all-btn').classList.toggle('hidden', !isOpen);
+}
+
+// ── Sharing ───────────────────────────────────────────────────────────────────
+
+function encodeList(list) {
+  const payload = JSON.stringify({ name: list.name, urls: list.urls.map(u => u.url) });
+  return btoa(unescape(encodeURIComponent(payload)));
+}
+
+function decodeShareToken(raw) {
+  raw = raw.trim();
+  const idx = raw.indexOf('#share=');
+  if (idx !== -1) raw = raw.slice(idx + '#share='.length);
+  if (raw.startsWith('share=')) raw = raw.slice(6);
+  return JSON.parse(decodeURIComponent(escape(atob(raw))));
+}
+
+function shareList() {
+  const list = currentLists.find(l => l.id == selectedListId);
+  if (!list) return;
+  const token    = encodeList(list);
+  const shareUrl = location.href.split('#')[0] + '#share=' + token;
+  navigator.clipboard.writeText(shareUrl).then(() => {
+    const btn = document.getElementById('share-btn');
+    const orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    btn.disabled = true;
+    setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 2000);
+  }).catch(() => window.prompt('Copy this share link:', shareUrl));
+}
+
+let pendingImport = null;
+
+function checkShareLink() {
+  if (!location.hash.startsWith('#share=')) return;
+  try {
+    const token = location.hash.slice('#share='.length);
+    pendingImport = decodeShareToken(token);
+    const { name, urls } = pendingImport;
+    document.getElementById('import-banner-title').textContent = `Shared list: "${name}"`;
+    document.getElementById('import-banner-desc').textContent =
+      `${urls.length} URL${urls.length !== 1 ? 's' : ''} — click "Add to My Lists" to save it.`;
+    document.getElementById('import-banner').classList.remove('hidden');
+  } catch { /* malformed token — ignore */ }
+}
+
+async function importSharedList() {
+  if (!pendingImport) return;
+  const { name, urls } = pendingImport;
+  try {
+    const list = await apiFetch('/lists', { method: 'POST', body: JSON.stringify({ name }) });
+    for (const url of urls) {
+      await apiFetch(`/lists/${list.id}/urls`, { method: 'POST', body: JSON.stringify({ url }) });
+    }
+    pendingImport = null;
+    dismissImportBanner();
+    if (list && list.id) selectedListId = list.id;
+    await render();
+  } catch (e) {
+    showErrorToast(e.message);
+  }
+}
+
+function dismissImportBanner() {
+  document.getElementById('import-banner').classList.add('hidden');
+  history.replaceState(null, '', location.pathname + location.search);
+}
+
+// ── Snapshot modal ────────────────────────────────────────────────────────────
 
 function openSnapshotModal() {
   const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -820,114 +807,19 @@ async function importSnapshot() {
   if (urls.length === 0) { closeSnapshotModal(); return; }
 
   try {
-    // Create the list, then add each URL to it.
-    const list = await apiFetch('/lists', {
-      method: 'POST',
-      body: JSON.stringify({ name }),
-    });
+    const list = await apiFetch('/lists', { method: 'POST', body: JSON.stringify({ name }) });
     for (const url of urls) {
-      await apiFetch(`/lists/${list.id}/urls`, {
-        method: 'POST',
-        body: JSON.stringify({ url }),
-      });
+      await apiFetch(`/lists/${list.id}/urls`, { method: 'POST', body: JSON.stringify({ url }) });
     }
     closeSnapshotModal();
+    if (list && list.id) selectedListId = list.id;
     await render();
   } catch (e) {
     showErrorToast(e.message);
   }
 }
 
-// =============================================================================
-// SHARING — URL hash encoding
-//
-// The share token format is unchanged from Phase 1. It's a Base64-encoded JSON
-// blob that travels in the URL hash — no server needed for the encoding itself.
-// The only difference is that importing now saves via the API instead of
-// writing directly to localStorage.
-// =============================================================================
-
-function encodeList(list) {
-  const payload = JSON.stringify({ name: list.name, urls: list.urls.map(u => u.url) });
-  return btoa(unescape(encodeURIComponent(payload)));
-}
-
-function decodeShareToken(raw) {
-  raw = raw.trim();
-  // Accept a raw token, a #share=... fragment, or a full URL containing one.
-  const idx = raw.indexOf('#share=');
-  if (idx !== -1) raw = raw.slice(idx + '#share='.length);
-  if (raw.startsWith('share=')) raw = raw.slice(6);
-  return JSON.parse(decodeURIComponent(escape(atob(raw))));
-}
-
-function shareList(id) {
-  const list = currentLists.find(l => l.id == id);
-  if (!list) return;
-
-  const token    = encodeList(list);
-  const shareUrl = location.href.split('#')[0] + '#share=' + token;
-
-  navigator.clipboard.writeText(shareUrl).then(() => {
-    const btn = document.querySelector(`.share-btn[data-list="${id}"]`);
-    if (btn) {
-      const orig = btn.textContent;
-      btn.textContent = 'Copied!';
-      btn.disabled = true;
-      setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 2000);
-    }
-  }).catch(() => window.prompt('Copy this share link:', shareUrl));
-}
-
-// ── Import banner (from URL #share= hash) ─────────────────────────────────────
-
-let pendingImport = null;
-
-function checkShareLink() {
-  if (!location.hash.startsWith('#share=')) return;
-  try {
-    const token  = location.hash.slice('#share='.length);
-    pendingImport = decodeShareToken(token);
-    const { name, urls } = pendingImport;
-    document.getElementById('import-banner-title').textContent = `Shared list: "${name}"`;
-    document.getElementById('import-banner-desc').textContent =
-      `${urls.length} URL${urls.length !== 1 ? 's' : ''} — click "Add to My Lists" to save it.`;
-    document.getElementById('import-banner').classList.remove('hidden');
-  } catch {
-    // Malformed token — ignore silently.
-  }
-}
-
-async function importSharedList() {
-  if (!pendingImport) return;
-  const { name, urls } = pendingImport;
-  try {
-    const list = await apiFetch('/lists', {
-      method: 'POST',
-      body: JSON.stringify({ name }),
-    });
-    for (const url of urls) {
-      await apiFetch(`/lists/${list.id}/urls`, {
-        method: 'POST',
-        body: JSON.stringify({ url }),
-      });
-    }
-    pendingImport = null;
-    dismissImportBanner();
-    await render();
-  } catch (e) {
-    showErrorToast(e.message);
-  }
-}
-
-function dismissImportBanner() {
-  document.getElementById('import-banner').classList.add('hidden');
-  history.replaceState(null, '', location.pathname + location.search);
-}
-
-// =============================================================================
-// ERROR TOAST
-// =============================================================================
+// ── Error toast ───────────────────────────────────────────────────────────────
 
 function showErrorToast(msg) {
   const toast = document.createElement('div');
@@ -937,101 +829,134 @@ function showErrorToast(msg) {
   setTimeout(() => toast.remove(), 4000);
 }
 
-// =============================================================================
-// RENDERING
-// render() fetches the current lists from the API and rebuilds the card grid.
-// It's called after every mutation so the UI always reflects server state.
-// =============================================================================
+// ── Display helpers ───────────────────────────────────────────────────────────
 
 function displayUrl(raw) {
   try {
     const u    = new URL(raw);
     const full = u.hostname + u.pathname + u.search + u.hash;
-    return full.length > 60 ? full.slice(0, 60) + '…' : full;
+    return full.length > 80 ? full.slice(0, 80) + '…' : full;
   } catch {
-    return raw.length > 60 ? raw.slice(0, 60) + '…' : raw;
+    return raw.length > 80 ? raw.slice(0, 80) + '…' : raw;
   }
 }
 
 function esc(str) {
   return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/"/g, '&quot;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;');
+    .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-function buildCard(list) {
-  const card = document.createElement('div');
-  card.className  = 'list-card';
-  card.dataset.id = list.id;
+// ── Rendering ─────────────────────────────────────────────────────────────────
 
-  const urlItems = list.urls.map(u => `
-    <li class="url-item">
-      <a href="${esc(u.url)}" target="_blank" rel="noopener" title="${esc(u.url)}">
-        ${esc(displayUrl(u.url))}
-      </a>
-      <button class="remove-url"
-              data-list="${list.id}"
-              data-url="${u.id}"
-              title="Remove">×</button>
-    </li>
-  `).join('');
-
-  const count = list.urls.length;
-
-  card.innerHTML = `
-    <div class="list-card-header">
-      <input class="list-name-input"
-             type="text"
-             value="${esc(list.name)}"
-             aria-label="List name"
-             data-list="${list.id}" />
-      <button class="btn-danger delete-list" data-list="${list.id}" title="Delete list">✕</button>
-    </div>
-
-    <ul class="url-list">${urlItems}</ul>
-
-    <div class="add-url-row">
-      <input type="text" class="add-url-input" placeholder="Add URL…" data-list="${list.id}" />
-      <button class="add-url-btn" data-list="${list.id}">Add</button>
-    </div>
-
-    <div class="list-actions">
-      <span class="url-count">${count} URL${count !== 1 ? 's' : ''}</span>
-      <div style="display:flex;gap:0.4rem;">
-        <button class="btn-share share-btn" data-list="${list.id}">Share</button>
-        ${(trackedWindows[list.id] || []).length > 0
-          ? `<button class="btn-close close-all-btn" data-list="${list.id}">Close All</button>`
-          : `<button class="btn-open open-all-btn" data-list="${list.id}">Open All ↗</button>`
-        }
-      </div>
-    </div>
+function buildNavItem(list) {
+  const item = document.createElement('div');
+  item.className  = 'nav-item' + (list.id == selectedListId ? ' nav-item--active' : '');
+  item.dataset.id = list.id;
+  item.innerHTML  = `
+    <span class="nav-item-name">${esc(list.name)}</span>
+    ${list.starred ? '<span class="nav-item-star">★</span>' : ''}
+    <span class="nav-item-count">${list.urls.length}</span>
   `;
+  item.addEventListener('click', () => selectList(list.id));
+  return item;
+}
 
-  return card;
+function renderSidebar() {
+  const myListsContainer = document.getElementById('sidebar-lists');
+  const starredContainer = document.getElementById('sidebar-starred-lists');
+  myListsContainer.innerHTML = '';
+  starredContainer.innerHTML = '';
+
+  if (currentLists.length === 0) {
+    const p = document.createElement('p');
+    p.className   = 'nav-empty-hint';
+    p.textContent = 'No lists yet — click + to create one.';
+    myListsContainer.appendChild(p);
+  } else {
+    currentLists.forEach(list => myListsContainer.appendChild(buildNavItem(list)));
+  }
+
+  const starred = currentLists.filter(l => l.starred);
+  if (starred.length === 0) {
+    const p = document.createElement('p');
+    p.className   = 'nav-coming-soon';
+    p.textContent = 'No starred lists yet.';
+    starredContainer.appendChild(p);
+  } else {
+    starred.forEach(list => starredContainer.appendChild(buildNavItem(list)));
+  }
+}
+
+function renderDetail() {
+  const welcomeEl = document.getElementById('welcome-state');
+  const detailEl  = document.getElementById('list-detail');
+
+  if (!selectedListId) {
+    welcomeEl.classList.remove('hidden');
+    detailEl.classList.add('hidden');
+    return;
+  }
+
+  const list = currentLists.find(l => l.id == selectedListId);
+  if (!list) {
+    selectedListId = null;
+    welcomeEl.classList.remove('hidden');
+    detailEl.classList.add('hidden');
+    return;
+  }
+
+  welcomeEl.classList.add('hidden');
+  detailEl.classList.remove('hidden');
+
+  document.getElementById('detail-list-name').value  = list.name;
+  document.getElementById('detail-url-count').textContent =
+    `${list.urls.length} URL${list.urls.length !== 1 ? 's' : ''}`;
+
+  const starBtn = document.getElementById('star-btn');
+  starBtn.textContent = list.starred ? '★ Starred' : '☆ Star';
+  starBtn.classList.toggle('starred', list.starred);
+
+  updateOpenCloseButtons();
+
+  const urlList = document.getElementById('detail-url-list');
+  urlList.innerHTML = '';
+
+  if (list.urls.length === 0) {
+    urlList.innerHTML = '<li class="detail-empty">No URLs yet — paste one below.</li>';
+  } else {
+    list.urls.forEach(u => {
+      const li = document.createElement('li');
+      li.className = 'detail-url-item';
+      li.innerHTML = `
+        <a href="${esc(u.url)}" target="_blank" rel="noopener"
+           class="detail-url-link" title="${esc(u.url)}">${esc(displayUrl(u.url))}</a>
+        <button class="detail-remove-url remove-url"
+                data-list="${list.id}" data-url="${u.id}" title="Remove">×</button>
+      `;
+      urlList.appendChild(li);
+    });
+  }
+}
+
+function selectList(id) {
+  selectedListId = id;
+  renderSidebar();
+  renderDetail();
 }
 
 async function render() {
   try {
     currentLists = await apiFetch('/lists');
   } catch {
-    // apiFetch already handled the 401 case by calling showAuthScreen().
-    // Any other error: leave the current UI in place.
     return;
   }
-
-  const container = document.getElementById('lists-container');
-  container.innerHTML = '';
-
-  renderCards();
+  renderSidebar();
+  renderDetail();
 }
 
-// =============================================================================
-// EVENT WIRING
-// =============================================================================
+// ── Event wiring ──────────────────────────────────────────────────────────────
 
-// ── Auth screen ──
 document.getElementById('tab-login').addEventListener('click',    () => setAuthMode('login'));
 document.getElementById('tab-register').addEventListener('click', () => setAuthMode('register'));
 document.getElementById('auth-submit').addEventListener('click',  submitAuth);
@@ -1044,62 +969,63 @@ document.getElementById('auth-password').addEventListener('keydown', e => {
   if (e.key === 'Enter') submitAuth();
 });
 
-// ── List container (delegated — one listener covers all cards) ──
-document.getElementById('lists-container').addEventListener('click', async e => {
-  const btn = e.target.closest('button, .remove-url');
-  if (!btn) return;
-
-  if (btn.classList.contains('delete-list')) {
-    await deleteList(btn.dataset.list);
-  } else if (btn.classList.contains('add-url-btn')) {
-    const input = btn.closest('.list-card').querySelector('.add-url-input');
-    await addUrl(btn.dataset.list, input);
-  } else if (btn.classList.contains('remove-url')) {
-    await removeUrl(btn.dataset.list, btn.dataset.url);
-  } else if (btn.classList.contains('open-all-btn')) {
-    openAll(btn.dataset.list);
-  } else if (btn.classList.contains('close-all-btn')) {
-    closeAll(btn.dataset.list);
-  } else if (btn.classList.contains('share-btn')) {
-    shareList(btn.dataset.list);
-  }
+document.getElementById('new-list-btn').addEventListener('click', () => {
+  const form = document.getElementById('new-list-form');
+  form.classList.toggle('hidden');
+  if (!form.classList.contains('hidden')) document.getElementById('new-list-name').focus();
 });
 
-// Rename: fires when the name input loses focus (or Enter is pressed below).
-document.getElementById('lists-container').addEventListener('change', async e => {
-  if (e.target.classList.contains('list-name-input')) {
-    await renameList(e.target.dataset.list, e.target.value);
-  }
+document.getElementById('cancel-new-list-btn').addEventListener('click', () => {
+  document.getElementById('new-list-form').classList.add('hidden');
+  document.getElementById('new-list-name').value = '';
 });
 
-document.getElementById('lists-container').addEventListener('keydown', e => {
-  if (e.key === 'Enter' && e.target.classList.contains('add-url-input')) {
-    addUrl(e.target.dataset.list, e.target);
-  }
-  if (e.key === 'Enter' && e.target.classList.contains('list-name-input')) {
-    e.target.blur(); // triggers the change event above
-  }
-});
-
-// ── Toolbar ──
-document.getElementById('create-btn').addEventListener('click', async () => {
+document.getElementById('create-list-btn').addEventListener('click', async () => {
   const input = document.getElementById('new-list-name');
-  await createList(input.value);
+  if (!input.value.trim()) return;
+  const name = input.value.trim();
   input.value = '';
-  input.focus();
+  document.getElementById('new-list-form').classList.add('hidden');
+  await createList(name);
 });
 
 document.getElementById('new-list-name').addEventListener('keydown', e => {
-  if (e.key === 'Enter') document.getElementById('create-btn').click();
+  if (e.key === 'Enter')  document.getElementById('create-list-btn').click();
+  if (e.key === 'Escape') document.getElementById('cancel-new-list-btn').click();
+});
+
+document.getElementById('open-all-btn').addEventListener('click', openAll);
+document.getElementById('close-all-btn').addEventListener('click', closeAll);
+document.getElementById('star-btn').addEventListener('click', toggleStar);
+document.getElementById('share-btn').addEventListener('click', shareList);
+
+document.getElementById('delete-list-btn').addEventListener('click', async () => {
+  if (!selectedListId) return;
+  await deleteList(selectedListId);
+});
+
+document.getElementById('detail-list-name').addEventListener('change', async e => {
+  if (selectedListId) await renameList(selectedListId, e.target.value);
+});
+document.getElementById('detail-list-name').addEventListener('keydown', e => {
+  if (e.key === 'Enter') e.target.blur();
+});
+
+document.getElementById('detail-add-btn').addEventListener('click', async () => {
+  if (!selectedListId) return;
+  await addUrl(selectedListId, document.getElementById('detail-add-url'));
+});
+document.getElementById('detail-add-url').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('detail-add-btn').click();
+});
+
+document.getElementById('detail-url-list').addEventListener('click', async e => {
+  const btn = e.target.closest('.remove-url');
+  if (!btn) return;
+  await removeUrl(btn.dataset.list, btn.dataset.url);
 });
 
 document.getElementById('snapshot-btn').addEventListener('click', openSnapshotModal);
-
-// ── Import banner ──
-document.getElementById('banner-import-btn').addEventListener('click',  importSharedList);
-document.getElementById('banner-dismiss-btn').addEventListener('click', dismissImportBanner);
-
-// ── Snapshot modal ──
 document.getElementById('modal-cancel').addEventListener('click', closeSnapshotModal);
 document.getElementById('modal-import').addEventListener('click', importSnapshot);
 document.getElementById('snapshot-modal').addEventListener('click', e => {
@@ -1109,33 +1035,25 @@ document.getElementById('snapshot-modal').addEventListener('keydown', e => {
   if (e.key === 'Escape') closeSnapshotModal();
 });
 
-// =============================================================================
-// BOOT
-// On load: check for a stored token. If one exists, verify it with the server
-// and show the app. If it's missing or rejected, show the login screen.
-// =============================================================================
+document.getElementById('banner-import-btn').addEventListener('click',  importSharedList);
+document.getElementById('banner-dismiss-btn').addEventListener('click', dismissImportBanner);
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
 
 async function boot() {
   const token = getToken();
-  if (!token) {
-    showAuthScreen();
-    return;
-  }
+  if (!token) { showAuthScreen(); return; }
   try {
-    // GET /users/me validates the token and returns the user's email.
     const user = await apiFetch('/users/me');
     showApp(user.email);
     await render();
     checkShareLink();
   } catch {
-    // apiFetch already called showAuthScreen() on a 401.
-    // Any other error (server offline, etc.): still show the auth screen.
     showAuthScreen();
   }
 }
 
 boot();
 </script>
-
 </body>
 </html>

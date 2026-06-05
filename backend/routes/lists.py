@@ -97,6 +97,21 @@ def update_list(
     return lst
 
 
+@router.patch("/{list_id}/star", response_model=schemas.ListOut)
+def star_list(
+    list_id:      int,
+    star_in:      schemas.ListStar,
+    db:           Session     = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    """Set or clear the starred flag on a list."""
+    lst = get_list_or_404(list_id, current_user, db)
+    lst.starred = star_in.starred
+    db.commit()
+    db.refresh(lst)
+    return lst
+
+
 @router.delete("/{list_id}", status_code=204)
 def delete_list(
     list_id:      int,

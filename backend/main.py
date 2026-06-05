@@ -23,12 +23,21 @@ from fastapi.responses import FileResponse
 import models
 from database import engine
 from routes import lists, users
+from sqlalchemy import text
 
-# Create all database tables defined in models.py if they don't already exist.
-# SQLAlchemy compares the class definitions to the actual database schema and
-# creates any missing tables. It does NOT modify existing tables — for that
-# you would use a migration tool like Alembic.
+# Create any tables that don't exist yet.
 models.Base.metadata.create_all(bind=engine)
+
+# Add the `starred` column to existing deployments that predate it.
+# create_all() only creates missing tables, not missing columns, so we run
+# a lightweight ALTER TABLE. Both SQLite and PostgreSQL raise an error if the
+# column already exists; we swallow it and move on.
+with engine.connect() as _conn:
+    try:
+        _conn.execute(text("ALTER TABLE lists ADD COLUMN starred BOOLEAN DEFAULT FALSE NOT NULL"))
+        _conn.commit()
+    except Exception:
+        _conn.rollback()
 
 app = FastAPI(
     title="Project Context Manager API",

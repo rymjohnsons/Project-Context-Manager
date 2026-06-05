@@ -43,10 +43,14 @@ class ListCreate(BaseModel):
 class ListUpdate(BaseModel):
     name: str
 
+class ListStar(BaseModel):
+    starred: bool
+
 
 class ListOut(BaseModel):
     id:       int
     name:     str
+    starred:  bool = False
     owner_id: int
     urls:     list[UrlOut] = []  # include all URLs when returning a list
 
