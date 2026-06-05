@@ -699,11 +699,13 @@ async function toggleStar() {
 function openAll() {
   const list = currentLists.find(l => l.id == selectedListId);
   if (!list || list.urls.length === 0) return;
+  // Update state and DOM before opening tabs so the button swaps
+  // in the same paint frame as the click, before any focus shift.
+  openedLists.add(String(selectedListId));
+  updateOpenCloseButtons();
   trackedWindows[selectedListId] = list.urls
     .map(u => window.open(u.url, '_blank'))
     .filter(Boolean);
-  openedLists.add(String(selectedListId));
-  updateOpenCloseButtons();
 }
 
 function closeAll() {
