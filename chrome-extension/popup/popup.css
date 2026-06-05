@@ -1,30 +1,28 @@
-/* popup.css — styles for the extension popup
-   Fixed width 380px; height grows with content.
-   lists-container has its own max-height + scroll. */
+/* popup.css — extension popup, blue-parchment palette */
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background: #0f172a;
-  color: #e2e8f0;
+  background: #F4F1EA;
+  color: #0F1E4A;
   width: 380px;
   font-size: 13px;
 }
 
-/* ── Tab bar ──────────────────────────────────────────────────────────── */
+/* ── Tab bar ────────────────────────────────────────────────────────────── */
 .tab-bar {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
-  background: #1e293b;
-  border-bottom: 1px solid #334155;
+  background: #1E3A8A;
+  border-bottom: 1px solid #2D4FA0;
 }
 
 .tab-url {
   flex: 1;
-  color: #94a3b8;
+  color: #C5D8F0;
   font-size: 11px;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -42,35 +40,37 @@ body {
   white-space: nowrap;
 }
 
-/* ── Generic section row ──────────────────────────────────────────────── */
+/* ── Generic section row ────────────────────────────────────────────────── */
 .section {
   display: flex;
   align-items: center;
   gap: 0.4rem;
   padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid #1a2234;
+  border-bottom: 1px solid #C5D8F0;
+  background: #F4F1EA;
 }
 
-/* ── Inputs & selects ─────────────────────────────────────────────────── */
+/* ── Inputs & selects ───────────────────────────────────────────────────── */
 input[type="text"],
 select {
   flex: 1;
   min-width: 0;
-  background: #1e293b;
-  border: 1px solid #334155;
-  color: #e2e8f0;
+  background: #FFFFFF;
+  border: 1px solid #C5D8F0;
+  color: #0F1E4A;
   padding: 0.35rem 0.5rem;
   border-radius: 5px;
   font-size: 12px;
   outline: none;
+  font-family: inherit;
 }
 
 input[type="text"]:focus,
-select:focus { border-color: #6366f1; }
+select:focus { border-color: #1E3A8A; }
 
-input[type="text"]::placeholder { color: #475569; }
+input[type="text"]::placeholder { color: #8EAAD8; }
 
-/* ── Buttons ──────────────────────────────────────────────────────────── */
+/* ── Buttons ────────────────────────────────────────────────────────────── */
 button {
   cursor: pointer;
   border: none;
@@ -80,45 +80,46 @@ button {
   padding: 0.35rem 0.6rem;
   transition: background 0.12s, color 0.12s;
   white-space: nowrap;
+  font-family: inherit;
 }
 
-.btn-primary         { background: #6366f1; color: white; }
-.btn-primary:hover   { background: #4f46e5; }
+.btn-primary         { background: #1E3A8A; color: white; }
+.btn-primary:hover   { background: #2D4FA0; }
 
-.btn-secondary       { background: #1e293b; color: #94a3b8; border: 1px solid #334155; }
-.btn-secondary:hover { background: #334155; color: #e2e8f0; }
+.btn-secondary       { background: #C5D8F0; color: #0F1E4A; border: 1px solid #8EAAD8; }
+.btn-secondary:hover { background: #8EAAD8; color: #0F1E4A; }
 
-.btn-icon       { background: transparent; color: #64748b; font-size: 14px; padding: 0.15rem 0.35rem; }
-.btn-icon:hover { color: #f87171; }
+.btn-icon       { background: transparent; color: #8EAAD8; font-size: 14px; padding: 0.15rem 0.35rem; }
+.btn-icon:hover { color: #dc2626; }
 
 .btn-open       { background: #059669; color: white; font-size: 11px; padding: 0.2rem 0.45rem; }
 .btn-open:hover { background: #047857; }
 
-.btn-close       { background: transparent; color: #f87171; border: 1px solid #f87171; font-size: 11px; padding: 0.2rem 0.45rem; }
-.btn-close:hover { background: #f87171; color: white; }
+.btn-close       { background: transparent; color: #dc2626; border: 1px solid #dc2626; font-size: 11px; padding: 0.2rem 0.45rem; }
+.btn-close:hover { background: #dc2626; color: white; }
 
-.btn-delete       { background: transparent; color: #334155; font-size: 14px; padding: 0.1rem 0.3rem; }
-.btn-delete:hover { color: #f87171; }
+.btn-delete       { background: transparent; color: #C5D8F0; font-size: 14px; padding: 0.1rem 0.3rem; }
+.btn-delete:hover { color: #dc2626; }
 
-.remove-url-btn       { background: transparent; border: none; color: #334155; font-size: 13px;
+.remove-url-btn       { background: transparent; border: none; color: #C5D8F0; font-size: 13px;
                         padding: 0; line-height: 1; cursor: pointer; flex-shrink: 0; transition: color 0.1s; }
-.remove-url-btn:hover { color: #f87171; }
+.remove-url-btn:hover { color: #dc2626; }
 
-.btn-link       { background: transparent; color: #818cf8; font-size: 11px; padding: 0.2rem 0.4rem; }
-.btn-link:hover { color: #a5b4fc; text-decoration: underline; }
+.btn-link       { background: transparent; color: #1E3A8A; font-size: 11px; padding: 0.2rem 0.4rem; }
+.btn-link:hover { color: #2D4FA0; text-decoration: underline; }
 
-.btn-link--dim       { color: #475569; }
-.btn-link--dim:hover { color: #f87171; text-decoration: none; }
+.btn-link--dim       { color: #8EAAD8; }
+.btn-link--dim:hover { color: #dc2626; text-decoration: none; }
 
 .full-width { width: 100%; justify-content: center; }
 
-/* ── Editable list name ───────────────────────────────────────────────── */
+/* ── Editable list name ─────────────────────────────────────────────────── */
 .list-name-input {
   flex: 1;
   min-width: 0;
   font-weight: 600;
   font-size: 12px;
-  color: #f1f5f9;
+  color: #0F1E4A;
   background: transparent;
   border: 1px solid transparent;
   border-radius: 3px;
@@ -128,34 +129,34 @@ button {
   white-space: nowrap;
   outline: none;
   cursor: text;
+  font-family: inherit;
 }
 
 .list-name-input:focus {
-  border-color: #6366f1;
-  background: #0f172a;
+  border-color: #1E3A8A;
+  background: #FFFFFF;
   white-space: normal;
   overflow: visible;
 }
 
-/* ── Lists container ──────────────────────────────────────────────────── */
-.lists-container {
-  max-height: 260px;
-  overflow-y: auto;
-}
+/* ── Lists container ────────────────────────────────────────────────────── */
+.lists-container { max-height: 260px; overflow-y: auto; }
 
 .lists-container::-webkit-scrollbar       { width: 4px; }
 .lists-container::-webkit-scrollbar-track { background: transparent; }
-.lists-container::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+.lists-container::-webkit-scrollbar-thumb { background: #C5D8F0; border-radius: 4px; }
 
-/* ── Individual list card ─────────────────────────────────────────────── */
+/* ── Individual list card ───────────────────────────────────────────────── */
 .list-card {
   padding: 0.5rem 0.75rem;
-  border-bottom: 1px solid #1a2234;
+  border-bottom: 1px solid #C5D8F0;
+  background: #FFFFFF;
 }
 
 .list-card--active {
-  border-left: 3px solid #6366f1;
+  border-left: 3px solid #1E3A8A;
   padding-left: calc(0.75rem - 3px);
+  background: #EEF4FB;
 }
 
 .list-header {
@@ -167,89 +168,67 @@ button {
 
 .url-count {
   font-size: 10px;
-  color: #64748b;
-  background: #1e293b;
+  color: #2D4FA0;
+  background: #C5D8F0;
   padding: 1px 5px;
   border-radius: 3px;
 }
 
-/* ── URL items ────────────────────────────────────────────────────────── */
-.url-list {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
+/* ── URL items ──────────────────────────────────────────────────────────── */
+.url-list { list-style: none; display: flex; flex-direction: column; gap: 2px; }
 
 .url-item {
   display: flex;
   align-items: center;
   gap: 0.35rem;
   padding: 3px 6px;
-  background: #0f172a;
+  background: #EEF4FB;
   border-radius: 4px;
 }
 
 .url-label {
   flex: 1;
-  color: #93c5fd;
+  color: #1E3A8A;
   font-size: 11px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.no-urls {
-  color: #475569;
-  font-size: 11px;
-  padding: 2px 0;
-  font-style: italic;
-}
+.no-urls   { color: #8EAAD8; font-size: 11px; padding: 2px 0; font-style: italic; }
+.empty-state { text-align: center; color: #8EAAD8; font-size: 12px; padding: 1.5rem 0.75rem; }
 
-.empty-state {
-  text-align: center;
-  color: #475569;
-  font-size: 12px;
-  padding: 1.5rem 0.75rem;
-}
-
-/* ── Footer ───────────────────────────────────────────────────────────── */
+/* ── Footer ─────────────────────────────────────────────────────────────── */
 .footer {
   display: flex;
   align-items: center;
   gap: 0.25rem;
   padding: 0.4rem 0.75rem;
-  border-top: 1px solid #1a2234;
-  background: #090f1c;
+  border-top: 1px solid #C5D8F0;
+  background: #F4F1EA;
 }
 
 .footer-email {
   flex: 1;
   font-size: 10px;
-  color: #475569;
+  color: #8EAAD8;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-/* ── Status toast ─────────────────────────────────────────────────────── */
+/* ── Status toast ───────────────────────────────────────────────────────── */
 .status-toast {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  padding: 0.35rem 0.75rem;
-  font-size: 11px;
-  font-weight: 600;
-  text-align: center;
-  z-index: 999;
+  position: fixed; top: 0; left: 0; right: 0;
+  padding: 0.35rem 0.75rem; font-size: 11px; font-weight: 600;
+  text-align: center; z-index: 999;
 }
 
 .status-toast--success { background: #059669; color: white; }
 .status-toast--error   { background: #dc2626; color: white; }
 .status-toast--warn    { background: #d97706; color: white; }
 
-/* ── Login screen ─────────────────────────────────────────────────────── */
+/* ── Login screen ───────────────────────────────────────────────────────── */
 #login-screen {
   display: flex;
   align-items: center;
@@ -257,60 +236,27 @@ button {
   padding: 1.25rem 0.75rem;
 }
 
-.login-card {
-  display: flex;
-  flex-direction: column;
-  gap: 0.7rem;
-  width: 100%;
-}
-
-.login-title {
-  font-size: 1rem;
-  font-weight: 700;
-  color: #f1f5f9;
-  text-align: center;
-  letter-spacing: -0.01em;
-}
-
-.login-title span { color: #6366f1; }
-
-.login-form {
-  display: flex;
-  flex-direction: column;
-  gap: 0.45rem;
-}
+.login-card   { display: flex; flex-direction: column; gap: 0.7rem; width: 100%; }
+.login-title  { font-size: 1rem; font-weight: 700; color: #0F1E4A; text-align: center; letter-spacing: -0.01em; }
+.login-title span { color: #1E3A8A; }
+.login-form   { display: flex; flex-direction: column; gap: 0.45rem; }
 
 #login-screen input[type="email"],
-#login-screen input[type="password"] {
-  width: 100%;
-  flex: none;
-}
+#login-screen input[type="password"] { width: 100%; flex: none; }
 
 .login-error {
-  background: rgba(220, 38, 38, 0.12);
-  border: 1px solid #dc2626;
+  background: rgba(220, 38, 38, 0.08);
+  border: 1px solid #fca5a5;
   border-radius: 5px;
-  color: #fca5a5;
+  color: #dc2626;
   font-size: 11px;
   padding: 0.4rem 0.6rem;
   line-height: 1.4;
 }
-
 .login-error.hidden { display: none; }
 
-.login-hint {
-  font-size: 10px;
-  color: #475569;
-  text-align: center;
-  line-height: 1.5;
-}
+.login-hint { font-size: 10px; color: #8EAAD8; text-align: center; line-height: 1.5; }
+.login-hint code { color: #1E3A8A; background: #C5D8F0; padding: 1px 4px; border-radius: 3px; }
 
-.login-hint code {
-  color: #818cf8;
-  background: #1e293b;
-  padding: 1px 4px;
-  border-radius: 3px;
-}
-
-/* ── Utility ──────────────────────────────────────────────────────────── */
+/* ── Utility ────────────────────────────────────────────────────────────── */
 .hidden { display: none !important; }
