@@ -1,20 +1,3 @@
-# schemas.py — Pydantic models for request and response validation
-#
-# Pydantic models serve a different purpose than SQLAlchemy models:
-#
-#   SQLAlchemy models (models.py) → define the DATABASE structure
-#   Pydantic models  (this file)  → define the API data shapes
-#
-# FastAPI uses Pydantic models to:
-#   • Validate incoming request bodies (reject bad data early with clear errors)
-#   • Serialize outgoing responses (control exactly what gets sent to the client)
-#   • Generate the interactive API docs at http://localhost:8000/docs
-#
-# The naming convention used here:
-#   *Create → data the client sends when creating something
-#   *Update → data the client sends when modifying something
-#   *Out    → data the server sends back to the client
-
 from datetime import datetime
 from pydantic import BaseModel
 
@@ -22,16 +5,22 @@ from pydantic import BaseModel
 # ── URL schemas ────────────────────────────────────────────────────────────────
 
 class UrlCreate(BaseModel):
-    url: str  # the raw URL string the client wants to add
+    url: str
 
 
 class UrlOut(BaseModel):
-    id:  int
-    url: str
+    id:             int
+    url:            str
+    title:          str | None = None
+    notes:          str | None = None
+    last_opened:    datetime | None = None
+    added_by_email: str | None = None
 
-    # from_attributes=True tells Pydantic it can read data directly from a
-    # SQLAlchemy model object (which uses attribute access, not dict access).
     model_config = {"from_attributes": True}
+
+
+class UrlNotesUpdate(BaseModel):
+    notes: str | None = None
 
 
 # ── List schemas ───────────────────────────────────────────────────────────────
@@ -43,6 +32,7 @@ class ListCreate(BaseModel):
 class ListUpdate(BaseModel):
     name: str
 
+
 class ListStar(BaseModel):
     starred: bool
 
@@ -52,7 +42,7 @@ class ListOut(BaseModel):
     name:     str
     starred:  bool = False
     owner_id: int
-    urls:     list[UrlOut] = []  # include all URLs when returning a list
+    urls:     list[UrlOut] = []
 
     model_config = {"from_attributes": True}
 
@@ -76,10 +66,23 @@ class UserOut(BaseModel):
 
 class Token(BaseModel):
     access_token: str
-    token_type:   str   # always "bearer" — this is the OAuth2 standard value
+    token_type:   str
 
 
 class TokenData(BaseModel):
-    # Holds the data we extract from a decoded JWT.
-    # None means the token was missing or couldn't be decoded.
     user_id: int | None = None
+
+
+# ── Password reset schemas ─────────────────────────────────────────────────────
+
+class ForgotPasswordRequest(BaseModel):
+    email: str
+
+
+class ForgotPasswordResponse(BaseModel):
+    token: str
+
+
+class ResetPasswordRequest(BaseModel):
+    token:        str
+    new_password: str

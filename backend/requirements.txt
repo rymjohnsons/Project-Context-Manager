@@ -6,3 +6,4 @@ bcrypt
 pydantic[email]
 psycopg2-binary
 python-dotenv
+httpx

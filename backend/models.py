@@ -1,23 +1,11 @@
-# models.py — SQLAlchemy database models (one class = one table)
-#
-# Each class here describes a table: its columns, their types, and how tables
-# relate to each other. When the app starts, SQLAlchemy reads these classes
-# and creates the actual tables in data.db if they don't already exist.
-#
-# There are three tables:
-#   users  — one row per registered account
-#   lists  — one row per URL list (belongs to a user)
-#   urls   — one row per URL (belongs to a list)
-
 from datetime import datetime, timezone
-from sqlalchemy import Boolean, Column, Integer, String, DateTime, ForeignKey
+from sqlalchemy import Boolean, Column, Integer, String, Text, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 
 from database import Base
 
 
 def utcnow():
-    """Return the current UTC time. Avoids the deprecated datetime.utcnow()."""
     return datetime.now(timezone.utc)
 
 
@@ -29,9 +17,6 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     created_at      = Column(DateTime(timezone=True), default=utcnow)
 
-    # relationship() gives us a shortcut: user.lists returns all List rows
-    # owned by this user. cascade="all, delete-orphan" means if we delete a
-    # user, SQLAlchemy automatically deletes all their lists too.
     lists = relationship("List", back_populates="owner", cascade="all, delete-orphan")
 
 
@@ -44,9 +29,6 @@ class List(Base):
     owner_id   = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at = Column(DateTime(timezone=True), default=utcnow)
 
-    # back_populates keeps both sides of the relationship in sync.
-    # list.owner → the User who owns this list
-    # list.urls  → all Url rows that belong to this list
     owner = relationship("User", back_populates="lists")
     urls  = relationship("Url", back_populates="list", cascade="all, delete-orphan")
 
@@ -54,10 +36,30 @@ class List(Base):
 class Url(Base):
     __tablename__ = "urls"
 
-    id         = Column(Integer, primary_key=True, index=True)
-    url        = Column(String, nullable=False)
-    list_id    = Column(Integer, ForeignKey("lists.id"), nullable=False)
-    created_at = Column(DateTime(timezone=True), default=utcnow)
+    id          = Column(Integer, primary_key=True, index=True)
+    url         = Column(String, nullable=False)
+    title       = Column(String, nullable=True)
+    notes       = Column(Text, nullable=True)
+    last_opened = Column(DateTime(timezone=True), nullable=True)
+    added_by_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+    list_id     = Column(Integer, ForeignKey("lists.id"), nullable=False)
+    created_at  = Column(DateTime(timezone=True), default=utcnow)
 
-    # url.list → the List this URL belongs to
-    list = relationship("List", back_populates="urls")
+    list     = relationship("List", back_populates="urls")
+    added_by = relationship("User", foreign_keys=[added_by_id])
+
+    @property
+    def added_by_email(self):
+        return self.added_by.email if self.added_by else None
+
+
+class PasswordResetToken(Base):
+    __tablename__ = "password_reset_tokens"
+
+    id         = Column(Integer, primary_key=True, index=True)
+    user_id    = Column(Integer, ForeignKey("users.id"), nullable=False)
+    token      = Column(String, unique=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=utcnow)
+    used       = Column(Boolean, default=False, nullable=False)
+
+    user = relationship("User")

@@ -205,12 +205,7 @@
     .detail-url-list::-webkit-scrollbar { width: 4px; }
     .detail-url-list::-webkit-scrollbar-thumb { background: #C5D8F0; border-radius: 4px; }
 
-    .detail-url-item {
-      display: flex; align-items: center; gap: 0.6rem;
-      padding: 0.55rem 0.85rem; background: #FFFFFF;
-      border: 1px solid #C5D8F0; border-radius: 8px; transition: border-color 0.1s;
-    }
-    .detail-url-item:hover { border-color: #8EAAD8; }
+    /* .detail-url-item is defined in the additions block below */
 
     .detail-url-link {
       flex: 1; color: #1E3A8A; text-decoration: none; font-size: 0.83rem;
@@ -325,6 +320,61 @@
     }
 
     .hidden { display: none !important; }
+
+    /* ── Forgot / reset password ── */
+    .auth-forgot-row {
+      text-align: right; margin-top: -0.3rem;
+    }
+    .auth-forgot-row a {
+      font-size: 0.78rem; color: #8EAAD8; text-decoration: none; cursor: pointer;
+    }
+    .auth-forgot-row a:hover { color: #1E3A8A; text-decoration: underline; }
+
+    .auth-back-row { text-align: center; }
+    .auth-back-link {
+      font-size: 0.78rem; color: #8EAAD8; cursor: pointer; background: none;
+      border: none; padding: 0; font-family: inherit;
+    }
+    .auth-back-link:hover { color: #1E3A8A; text-decoration: underline; }
+
+    .forgot-section { display: flex; flex-direction: column; gap: 0.7rem; }
+
+    .forgot-token-box {
+      background: #F4F1EA; border: 1px solid #C5D8F0; border-radius: 8px;
+      padding: 1rem; display: flex; flex-direction: column; gap: 0.6rem;
+    }
+    .forgot-token-box p { font-size: 0.8rem; color: #2D4FA0; line-height: 1.5; }
+    .forgot-token-value {
+      font-family: 'Courier New', monospace; font-size: 0.78rem; color: #0F1E4A;
+      background: #FFFFFF; border: 1px solid #C5D8F0; border-radius: 4px;
+      padding: 0.45rem 0.65rem; word-break: break-all; user-select: all;
+    }
+    .forgot-token-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
+
+    /* ── URL item with meta row ── */
+    .detail-url-item {
+      display: flex; flex-direction: column; gap: 0.3rem;
+      padding: 0.55rem 0.85rem; background: #FFFFFF;
+      border: 1px solid #C5D8F0; border-radius: 8px; transition: border-color 0.1s;
+    }
+    .detail-url-item:hover { border-color: #8EAAD8; }
+
+    .url-main-row { display: flex; align-items: center; gap: 0.6rem; }
+
+    .url-meta-row { display: flex; align-items: center; gap: 0.6rem; }
+
+    .url-notes-input {
+      flex: 1; font-size: 0.74rem; color: #0F1E4A; background: transparent;
+      border: 1px solid transparent; border-radius: 4px;
+      padding: 0.15rem 0.3rem; outline: none; font-family: inherit; min-width: 0;
+    }
+    .url-notes-input:hover  { border-color: #C5D8F0; }
+    .url-notes-input:focus  { border-color: #1E3A8A; background: #F4F1EA; }
+    .url-notes-input::placeholder { color: #C5D8F0; font-style: italic; }
+
+    .url-meta-info {
+      font-size: 0.68rem; color: #8EAAD8; white-space: nowrap; flex-shrink: 0;
+    }
   </style>
 </head>
 <body>
@@ -334,15 +384,43 @@
   <div class="auth-card">
     <h1>Project <span>Context</span> Manager</h1>
     <p class="auth-subtitle">Save and open URL lists across sessions.</p>
-    <div class="auth-tabs">
+    <div id="auth-tabs" class="auth-tabs">
       <button id="tab-login"    class="auth-tab active">Log In</button>
       <button id="tab-register" class="auth-tab">Register</button>
     </div>
     <div id="auth-error" class="auth-error hidden"></div>
-    <div class="auth-form">
+    <div id="auth-form-wrap" class="auth-form">
       <input type="email"    id="auth-email"    placeholder="Email address"  autocomplete="email" />
       <input type="password" id="auth-password" placeholder="Password"       autocomplete="current-password" />
       <button id="auth-submit" class="btn-primary" style="padding:0.65rem;">Log In</button>
+    </div>
+    <p id="forgot-link-row" class="auth-forgot-row"><a id="forgot-link">Forgot password?</a></p>
+
+    <!-- Forgot password flow -->
+    <div id="forgot-section" class="forgot-section hidden">
+      <div class="auth-form">
+        <input type="email" id="forgot-email" placeholder="Your account email" autocomplete="email" />
+        <button id="forgot-submit" class="btn-primary" style="padding:0.65rem;">Get Reset Token</button>
+      </div>
+      <div id="forgot-token-box" class="forgot-token-box hidden">
+        <p>Your reset token (valid 1 hour). Copy it, then use it below to set a new password.</p>
+        <div id="forgot-token-value" class="forgot-token-value"></div>
+        <div class="forgot-token-actions">
+          <button id="forgot-copy-btn" class="btn-secondary" style="font-size:0.74rem;padding:0.3rem 0.65rem;">Copy Token</button>
+          <button id="forgot-go-reset-btn" class="btn-primary"  style="font-size:0.74rem;padding:0.3rem 0.65rem;">Reset Password →</button>
+        </div>
+      </div>
+      <p class="auth-back-row"><button class="auth-back-link" id="forgot-back-link">← Back to login</button></p>
+    </div>
+
+    <!-- Reset password flow -->
+    <div id="reset-section" class="forgot-section hidden">
+      <div class="auth-form">
+        <input type="text"     id="reset-token"    placeholder="Paste reset token" />
+        <input type="password" id="reset-password" placeholder="New password" autocomplete="new-password" />
+        <button id="reset-submit" class="btn-primary" style="padding:0.65rem;">Set New Password</button>
+      </div>
+      <p class="auth-back-row"><button class="auth-back-link" id="reset-back-link">← Back to login</button></p>
     </div>
   </div>
 </div>
@@ -528,11 +606,21 @@ function showApp(email) {
 
 function setAuthMode(mode) {
   authMode = mode;
-  const isLogin = mode === 'login';
-  document.getElementById('tab-login').classList.toggle('active', isLogin);
-  document.getElementById('tab-register').classList.toggle('active', !isLogin);
-  document.getElementById('auth-submit').textContent = isLogin ? 'Log In' : 'Create Account';
-  document.getElementById('auth-password').autocomplete = isLogin ? 'current-password' : 'new-password';
+  const isLoginOrRegister = mode === 'login' || mode === 'register';
+  const isLogin           = mode === 'login';
+
+  document.getElementById('auth-tabs').classList.toggle('hidden', !isLoginOrRegister);
+  document.getElementById('auth-form-wrap').classList.toggle('hidden', !isLoginOrRegister);
+  document.getElementById('forgot-link-row').classList.toggle('hidden', !isLogin);
+  document.getElementById('forgot-section').classList.toggle('hidden', mode !== 'forgot');
+  document.getElementById('reset-section').classList.toggle('hidden', mode !== 'reset');
+
+  if (isLoginOrRegister) {
+    document.getElementById('tab-login').classList.toggle('active', isLogin);
+    document.getElementById('tab-register').classList.toggle('active', !isLogin);
+    document.getElementById('auth-submit').textContent = isLogin ? 'Log In' : 'Create Account';
+    document.getElementById('auth-password').autocomplete = isLogin ? 'current-password' : 'new-password';
+  }
   setAuthError('');
 }
 
@@ -578,6 +666,51 @@ function logout() {
   currentLists = [];
   selectedListId = null;
   showAuthScreen();
+}
+
+// ── Forgot / reset password ───────────────────────────────────────────────────
+
+async function submitForgot() {
+  const email = document.getElementById('forgot-email').value.trim();
+  if (!email) return;
+  const btn = document.getElementById('forgot-submit');
+  btn.disabled = true; btn.textContent = 'Please wait…';
+  try {
+    const { token } = await apiFetch('/users/forgot-password', {
+      method: 'POST', body: JSON.stringify({ email }),
+    });
+    document.getElementById('forgot-token-value').textContent = token;
+    document.getElementById('forgot-token-box').classList.remove('hidden');
+    document.getElementById('reset-token').value = token;
+  } catch (e) {
+    setAuthError(e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Get Reset Token';
+  }
+}
+
+async function submitReset() {
+  const token    = document.getElementById('reset-token').value.trim();
+  const password = document.getElementById('reset-password').value;
+  if (!token || !password) { setAuthError('Enter both the token and your new password.'); return; }
+  const btn = document.getElementById('reset-submit');
+  btn.disabled = true; btn.textContent = 'Please wait…';
+  try {
+    await apiFetch('/users/reset-password', {
+      method: 'POST', body: JSON.stringify({ token, new_password: password }),
+    });
+    setAuthMode('login');
+    setAuthError('');
+    document.getElementById('auth-error').textContent = 'Password updated — please log in.';
+    document.getElementById('auth-error').classList.remove('hidden');
+    document.getElementById('auth-error').style.background = 'rgba(5,150,105,0.08)';
+    document.getElementById('auth-error').style.borderColor = '#6ee7b7';
+    document.getElementById('auth-error').style.color = '#047857';
+  } catch (e) {
+    setAuthError(e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = 'Set New Password';
+  }
 }
 
 // ── App state ─────────────────────────────────────────────────────────────────
@@ -667,13 +800,25 @@ async function toggleStar() {
 function openAll() {
   const list = currentLists.find(l => l.id == selectedListId);
   if (!list || list.urls.length === 0) return;
-  // Update state and DOM before opening tabs so the button swaps
-  // in the same paint frame as the click, before any focus shift.
   openedLists.add(String(selectedListId));
   updateOpenCloseButtons();
+  list.urls.forEach(u => {
+    apiFetch(`/lists/${selectedListId}/urls/${u.id}/open`, { method: 'POST' }).catch(() => {});
+  });
   trackedWindows[selectedListId] = list.urls
     .map(u => window.open(u.url, '_blank'))
     .filter(Boolean);
+}
+
+async function saveNotes(listId, urlId, notes) {
+  try {
+    await apiFetch(`/lists/${listId}/urls/${urlId}/notes`, {
+      method: 'PATCH',
+      body: JSON.stringify({ notes: notes || null }),
+    });
+  } catch (e) {
+    showErrorToast(e.message);
+  }
 }
 
 function closeAll() {
@@ -801,6 +946,21 @@ function showErrorToast(msg) {
 
 // ── Display helpers ───────────────────────────────────────────────────────────
 
+function formatDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const now = new Date();
+  const diffMs = now - d;
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1)   return 'just now';
+  if (diffMins < 60)  return `${diffMins}m ago`;
+  const diffHrs = Math.floor(diffMins / 60);
+  if (diffHrs < 24)   return `${diffHrs}h ago`;
+  const diffDays = Math.floor(diffHrs / 24);
+  if (diffDays < 7)   return `${diffDays}d ago`;
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 function displayUrl(raw) {
   try {
     const u    = new URL(raw);
@@ -898,11 +1058,27 @@ function renderDetail() {
     list.urls.forEach(u => {
       const li = document.createElement('li');
       li.className = 'detail-url-item';
+
+      const linkText = u.title ? esc(u.title) : esc(displayUrl(u.url));
+      const metaParts = [];
+      if (u.added_by_email) metaParts.push(esc(u.added_by_email));
+      if (u.last_opened)    metaParts.push('opened ' + formatDate(u.last_opened));
+
       li.innerHTML = `
-        <a href="${esc(u.url)}" target="_blank" rel="noopener"
-           class="detail-url-link" title="${esc(u.url)}">${esc(displayUrl(u.url))}</a>
-        <button class="detail-remove-url remove-url"
-                data-list="${list.id}" data-url="${u.id}" title="Remove">×</button>
+        <div class="url-main-row">
+          <a href="${esc(u.url)}" target="_blank" rel="noopener"
+             class="detail-url-link" title="${esc(u.url)}"
+             data-list="${list.id}" data-url="${u.id}">${linkText}</a>
+          <button class="detail-remove-url remove-url"
+                  data-list="${list.id}" data-url="${u.id}" title="Remove">×</button>
+        </div>
+        <div class="url-meta-row">
+          <input type="text" class="url-notes-input"
+                 placeholder="Add a note…"
+                 value="${esc(u.notes || '')}"
+                 data-list="${list.id}" data-url="${u.id}" />
+          ${metaParts.length ? `<span class="url-meta-info">${metaParts.join(' · ')}</span>` : ''}
+        </div>
       `;
       urlList.appendChild(li);
     });
@@ -931,6 +1107,25 @@ document.getElementById('tab-login').addEventListener('click',    () => setAuthM
 document.getElementById('tab-register').addEventListener('click', () => setAuthMode('register'));
 document.getElementById('auth-submit').addEventListener('click',  submitAuth);
 document.getElementById('logout-btn').addEventListener('click',   logout);
+
+document.getElementById('forgot-link').addEventListener('click', () => setAuthMode('forgot'));
+document.getElementById('forgot-back-link').addEventListener('click', () => setAuthMode('login'));
+document.getElementById('reset-back-link').addEventListener('click',  () => setAuthMode('login'));
+document.getElementById('forgot-submit').addEventListener('click', submitForgot);
+document.getElementById('forgot-copy-btn').addEventListener('click', () => {
+  const val = document.getElementById('forgot-token-value').textContent;
+  navigator.clipboard.writeText(val).catch(() => {});
+  document.getElementById('forgot-copy-btn').textContent = 'Copied!';
+  setTimeout(() => { document.getElementById('forgot-copy-btn').textContent = 'Copy Token'; }, 1800);
+});
+document.getElementById('forgot-go-reset-btn').addEventListener('click', () => setAuthMode('reset'));
+document.getElementById('reset-submit').addEventListener('click', submitReset);
+document.getElementById('forgot-email').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('forgot-submit').click();
+});
+document.getElementById('reset-password').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('reset-submit').click();
+});
 
 document.getElementById('auth-email').addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('auth-password').focus();
@@ -991,9 +1186,19 @@ document.getElementById('detail-add-url').addEventListener('keydown', e => {
 
 document.getElementById('detail-url-list').addEventListener('click', async e => {
   const btn = e.target.closest('.remove-url');
-  if (!btn) return;
-  await removeUrl(btn.dataset.list, btn.dataset.url);
+  if (btn) { await removeUrl(btn.dataset.list, btn.dataset.url); return; }
+
+  const link = e.target.closest('a.detail-url-link');
+  if (link) {
+    apiFetch(`/lists/${link.dataset.list}/urls/${link.dataset.url}/open`, { method: 'POST' })
+      .catch(() => {});
+  }
 });
+
+document.getElementById('detail-url-list').addEventListener('blur', async e => {
+  const input = e.target.closest('.url-notes-input');
+  if (input) await saveNotes(input.dataset.list, input.dataset.url, input.value.trim());
+}, true);
 
 document.getElementById('snapshot-btn').addEventListener('click', openSnapshotModal);
 document.getElementById('modal-cancel').addEventListener('click', closeSnapshotModal);
