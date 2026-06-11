@@ -1,5 +1,5 @@
 import re
-import httpx
+import urllib.request
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -25,10 +25,11 @@ def get_list_or_404(list_id: int, user: models.User, db: Session) -> models.List
 def _fetch_title(url: str) -> str | None:
     """Return the <title> of the page at url, or None if unreachable/missing."""
     try:
-        with httpx.Client(timeout=5, follow_redirects=True) as client:
-            resp = client.get(url, headers={"User-Agent": "Mozilla/5.0"})
-            if resp.status_code == 200:
-                m = re.search(r'<title[^>]*>([^<]+)</title>', resp.text, re.IGNORECASE)
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=5) as resp:
+            if resp.status == 200:
+                html = resp.read(65536).decode("utf-8", errors="ignore")
+                m = re.search(r'<title[^>]*>([^<]+)</title>', html, re.IGNORECASE)
                 if m:
                     return m.group(1).strip()[:200]
     except Exception:
