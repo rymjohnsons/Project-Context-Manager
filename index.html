@@ -351,30 +351,68 @@
     }
     .forgot-token-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
 
-    /* ── URL item with meta row ── */
+    /* ── URL table columns ── */
+    .detail-url-table-header {
+      display: grid;
+      grid-template-columns: 1fr 155px 115px 88px;
+      align-items: center;
+      padding: 0.2rem 0.85rem 0.35rem;
+      font-size: 0.63rem; font-weight: 600; color: #8EAAD8;
+      letter-spacing: 0.08em; text-transform: uppercase;
+      border-bottom: 1px solid #C5D8F0;
+      margin-bottom: 0.35rem; flex-shrink: 0;
+    }
+    .detail-url-table-header span:last-child { text-align: right; }
+
     .detail-url-item {
-      display: flex; flex-direction: column; gap: 0.3rem;
-      padding: 0.55rem 0.85rem; background: #FFFFFF;
-      border: 1px solid #C5D8F0; border-radius: 8px; transition: border-color 0.1s;
+      display: flex; flex-direction: column;
+      background: #FFFFFF; border: 1px solid #C5D8F0;
+      border-radius: 8px; transition: border-color 0.1s; overflow: hidden;
     }
     .detail-url-item:hover { border-color: #8EAAD8; }
 
-    .url-main-row { display: flex; align-items: center; gap: 0.6rem; }
+    .url-row {
+      display: grid;
+      grid-template-columns: 1fr 155px 115px 88px;
+      align-items: center;
+      padding: 0.5rem 0.85rem;
+    }
 
-    .url-meta-row { display: flex; align-items: center; gap: 0.6rem; }
+    .url-col-title  { min-width: 0; }
+    .url-col-addedby {
+      font-size: 0.72rem; color: #8EAAD8;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      padding: 0 0.5rem;
+    }
+    .url-col-lastopened {
+      font-size: 0.72rem; color: #8EAAD8; white-space: nowrap; padding-right: 0.5rem;
+    }
+    .url-col-actions {
+      display: flex; gap: 0.15rem; justify-content: flex-end; align-items: center;
+    }
 
+    .url-action-btn {
+      background: transparent; border: none; cursor: pointer;
+      font-size: 0.95rem; line-height: 1; padding: 0.22rem 0.3rem;
+      border-radius: 4px; color: #C5D8F0;
+      transition: color 0.1s, background 0.1s; font-family: inherit;
+    }
+    .url-action-btn:hover              { color: #1E3A8A; background: #EEF4FB; }
+    .url-action-btn.url-star:hover     { color: #f59e0b; background: #fef3c7; }
+    .url-action-btn.url-star.starred   { color: #f59e0b; }
+    .url-action-btn.url-remove:hover   { color: #dc2626; background: #fee2e2; }
+
+    .url-notes-row {
+      padding: 0 0.85rem 0.45rem; border-top: 1px solid #F4F1EA;
+    }
     .url-notes-input {
-      flex: 1; font-size: 0.74rem; color: #0F1E4A; background: transparent;
+      width: 100%; font-size: 0.74rem; color: #0F1E4A; background: transparent;
       border: 1px solid transparent; border-radius: 4px;
-      padding: 0.15rem 0.3rem; outline: none; font-family: inherit; min-width: 0;
+      padding: 0.15rem 0.3rem; outline: none; font-family: inherit;
     }
     .url-notes-input:hover  { border-color: #C5D8F0; }
     .url-notes-input:focus  { border-color: #1E3A8A; background: #F4F1EA; }
     .url-notes-input::placeholder { color: #C5D8F0; font-style: italic; }
-
-    .url-meta-info {
-      font-size: 0.68rem; color: #8EAAD8; white-space: nowrap; flex-shrink: 0;
-    }
   </style>
 </head>
 <body>
@@ -516,6 +554,12 @@
         </div>
       </div>
 
+      <div id="detail-url-table-header" class="detail-url-table-header hidden">
+        <span>URL</span>
+        <span>Added By</span>
+        <span>Last Opened</span>
+        <span>Actions</span>
+      </div>
       <ul id="detail-url-list" class="detail-url-list"></ul>
 
       <div class="detail-add-row">
@@ -810,6 +854,26 @@ function openAll() {
     .filter(Boolean);
 }
 
+async function toggleUrlStar(listId, urlId, currentStarred) {
+  const newStarred = !currentStarred;
+  try {
+    await apiFetch(`/lists/${listId}/urls/${urlId}/star`, {
+      method: 'PATCH',
+      body: JSON.stringify({ starred: newStarred }),
+    });
+    // Optimistic local update — no full re-render needed.
+    const list = currentLists.find(l => l.id == listId);
+    if (list) { const u = list.urls.find(u => u.id == urlId); if (u) u.starred = newStarred; }
+    const btn = document.querySelector(`.url-star[data-list="${listId}"][data-url="${urlId}"]`);
+    if (btn) {
+      btn.classList.toggle('starred', newStarred);
+      btn.textContent     = newStarred ? '★' : '☆';
+      btn.title           = newStarred ? 'Unstar' : 'Star';
+      btn.dataset.starred = String(newStarred);
+    }
+  } catch (e) { showErrorToast(e.message); }
+}
+
 async function saveNotes(listId, urlId, notes) {
   try {
     await apiFetch(`/lists/${listId}/urls/${urlId}/notes`, {
@@ -947,18 +1011,19 @@ function showErrorToast(msg) {
 // ── Display helpers ───────────────────────────────────────────────────────────
 
 function formatDate(iso) {
-  if (!iso) return '';
-  const d = new Date(iso);
-  const now = new Date();
-  const diffMs = now - d;
-  const diffMins = Math.floor(diffMs / 60000);
-  if (diffMins < 1)   return 'just now';
-  if (diffMins < 60)  return `${diffMins}m ago`;
-  const diffHrs = Math.floor(diffMins / 60);
-  if (diffHrs < 24)   return `${diffHrs}h ago`;
-  const diffDays = Math.floor(diffHrs / 24);
-  if (diffDays < 7)   return `${diffDays}d ago`;
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  if (!iso) return '—';
+  const d    = new Date(iso);
+  const now  = new Date();
+  const tod  = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const yest = new Date(tod - 86400000);
+  const day  = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  if (day.getTime() === tod.getTime())  return 'Today';
+  if (day.getTime() === yest.getTime()) return 'Yesterday';
+  const n = d.getDate();
+  const suffix = [,'st','nd','rd'][n % 10 > 3 || ~~(n % 100 / 10) === 1 ? 0 : n % 10] || 'th';
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const label  = `${months[d.getMonth()]} ${n}${suffix}`;
+  return d.getFullYear() === now.getFullYear() ? label : `${label}, ${d.getFullYear()}`;
 }
 
 function displayUrl(raw) {
@@ -1049,35 +1114,52 @@ function renderDetail() {
 
   updateOpenCloseButtons();
 
-  const urlList = document.getElementById('detail-url-list');
+  const tableHeader = document.getElementById('detail-url-table-header');
+  const urlList     = document.getElementById('detail-url-list');
   urlList.innerHTML = '';
 
   if (list.urls.length === 0) {
+    tableHeader.classList.add('hidden');
     urlList.innerHTML = '<li class="detail-empty">No URLs yet — paste one below.</li>';
   } else {
+    tableHeader.classList.remove('hidden');
     list.urls.forEach(u => {
-      const li = document.createElement('li');
-      li.className = 'detail-url-item';
-
-      const linkText = u.title ? esc(u.title) : esc(displayUrl(u.url));
-      const metaParts = [];
-      if (u.added_by_email) metaParts.push(esc(u.added_by_email));
-      if (u.last_opened)    metaParts.push('opened ' + formatDate(u.last_opened));
+      const li        = document.createElement('li');
+      li.className    = 'detail-url-item';
+      const linkText  = u.title ? esc(u.title) : esc(displayUrl(u.url));
+      const addedBy   = u.added_by_email
+        ? esc(u.added_by_email.split('@')[0])
+        : '—';
+      const addedByFull = u.added_by_email ? esc(u.added_by_email) : '';
+      const lastOpened  = u.last_opened ? formatDate(u.last_opened) : '—';
+      const starred     = u.starred || false;
 
       li.innerHTML = `
-        <div class="url-main-row">
-          <a href="${esc(u.url)}" target="_blank" rel="noopener"
-             class="detail-url-link" title="${esc(u.url)}"
-             data-list="${list.id}" data-url="${u.id}">${linkText}</a>
-          <button class="detail-remove-url remove-url"
-                  data-list="${list.id}" data-url="${u.id}" title="Remove">×</button>
+        <div class="url-row">
+          <div class="url-col-title">
+            <a href="${esc(u.url)}" target="_blank" rel="noopener"
+               class="detail-url-link" title="${esc(u.url)}"
+               data-list="${list.id}" data-url="${u.id}">${linkText}</a>
+          </div>
+          <div class="url-col-addedby" title="${addedByFull}">${addedBy}</div>
+          <div class="url-col-lastopened">${lastOpened}</div>
+          <div class="url-col-actions">
+            <button class="url-action-btn url-open"
+                    data-href="${esc(u.url)}" data-list="${list.id}" data-url="${u.id}"
+                    title="Open in new tab">↗</button>
+            <button class="url-action-btn url-star ${starred ? 'starred' : ''}"
+                    data-list="${list.id}" data-url="${u.id}" data-starred="${starred}"
+                    title="${starred ? 'Unstar' : 'Star'}">${starred ? '★' : '☆'}</button>
+            <button class="url-action-btn url-remove remove-url"
+                    data-list="${list.id}" data-url="${u.id}"
+                    title="Remove">×</button>
+          </div>
         </div>
-        <div class="url-meta-row">
+        <div class="url-notes-row">
           <input type="text" class="url-notes-input"
                  placeholder="Add a note…"
                  value="${esc(u.notes || '')}"
                  data-list="${list.id}" data-url="${u.id}" />
-          ${metaParts.length ? `<span class="url-meta-info">${metaParts.join(' · ')}</span>` : ''}
         </div>
       `;
       urlList.appendChild(li);
@@ -1185,13 +1267,27 @@ document.getElementById('detail-add-url').addEventListener('keydown', e => {
 });
 
 document.getElementById('detail-url-list').addEventListener('click', async e => {
-  const btn = e.target.closest('.remove-url');
-  if (btn) { await removeUrl(btn.dataset.list, btn.dataset.url); return; }
+  const removeBtn = e.target.closest('.url-remove');
+  if (removeBtn) { await removeUrl(removeBtn.dataset.list, removeBtn.dataset.url); return; }
+
+  const openBtn = e.target.closest('.url-open');
+  if (openBtn) {
+    window.open(openBtn.dataset.href, '_blank', 'noopener');
+    apiFetch(`/lists/${openBtn.dataset.list}/urls/${openBtn.dataset.url}/open`, { method: 'POST' })
+      .then(() => render()).catch(() => {});
+    return;
+  }
+
+  const starBtn = e.target.closest('.url-star');
+  if (starBtn) {
+    await toggleUrlStar(starBtn.dataset.list, starBtn.dataset.url, starBtn.dataset.starred === 'true');
+    return;
+  }
 
   const link = e.target.closest('a.detail-url-link');
   if (link) {
     apiFetch(`/lists/${link.dataset.list}/urls/${link.dataset.url}/open`, { method: 'POST' })
-      .catch(() => {});
+      .then(() => render()).catch(() => {});
   }
 });
 

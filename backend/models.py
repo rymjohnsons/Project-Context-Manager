@@ -45,6 +45,7 @@ class Url(Base):
     list_id     = Column(Integer, ForeignKey("lists.id"), nullable=False)
     created_at  = Column(DateTime(timezone=True), default=utcnow)
 
+    starred  = Column(Boolean, default=False, nullable=False)
     list     = relationship("List", back_populates="urls")
     added_by = relationship("User", foreign_keys=[added_by_id])
 

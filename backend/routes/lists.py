@@ -164,6 +164,27 @@ def remove_url(
     db.commit()
 
 
+@router.patch("/{list_id}/urls/{url_id}/star", response_model=schemas.UrlOut)
+def star_url(
+    list_id:      int,
+    url_id:       int,
+    star_in:      schemas.UrlStar,
+    db:           Session     = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    get_list_or_404(list_id, current_user, db)
+    url = db.query(models.Url).filter(
+        models.Url.id      == url_id,
+        models.Url.list_id == list_id,
+    ).first()
+    if url is None:
+        raise HTTPException(status_code=404, detail="URL not found in this list.")
+    url.starred = star_in.starred
+    db.commit()
+    db.refresh(url)
+    return url
+
+
 @router.patch("/{list_id}/urls/{url_id}/notes", response_model=schemas.UrlOut)
 def update_url_notes(
     list_id:      int,

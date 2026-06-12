@@ -23,6 +23,7 @@ _migrations = [
     "ALTER TABLE urls ADD COLUMN notes TEXT",
     "ALTER TABLE urls ADD COLUMN last_opened TIMESTAMP WITH TIME ZONE",
     "ALTER TABLE urls ADD COLUMN added_by_id INTEGER REFERENCES users(id)",
+    "ALTER TABLE urls ADD COLUMN starred BOOLEAN DEFAULT FALSE NOT NULL",
 ]
 
 for _sql in _migrations:

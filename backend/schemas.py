@@ -15,12 +15,17 @@ class UrlOut(BaseModel):
     notes:          str | None = None
     last_opened:    datetime | None = None
     added_by_email: str | None = None
+    starred:        bool = False
 
     model_config = {"from_attributes": True}
 
 
 class UrlNotesUpdate(BaseModel):
     notes: str | None = None
+
+
+class UrlStar(BaseModel):
+    starred: bool
 
 
 # ── List schemas ───────────────────────────────────────────────────────────────
