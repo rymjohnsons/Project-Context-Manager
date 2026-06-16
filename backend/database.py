@@ -2,20 +2,23 @@ import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
-# Read the database URL from the environment.
-# • Locally:  set in backend/.env as DATABASE_URL=sqlite:///./data.db
-# • Railway:  automatically injected by the PostgreSQL plugin as DATABASE_URL=postgres://...
 DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./data.db")
 
-# Railway (and older Heroku) PostgreSQL URLs start with "postgres://" but
-# SQLAlchemy 2.x only accepts "postgresql://". Fix it transparently here.
 if DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
 
-# check_same_thread is a SQLite-only argument. It must be omitted for PostgreSQL,
-# so we only pass it when the URL tells us we're talking to SQLite.
-connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
+# On Railway, DATABASE_URL is injected by the PostgreSQL plugin. If it's missing
+# the app would silently use SQLite — but Railway's filesystem is ephemeral and
+# that file is destroyed on every redeploy, wiping all user data. Fail loudly instead.
+if DATABASE_URL.startswith("sqlite") and os.environ.get("RAILWAY_ENVIRONMENT"):
+    raise RuntimeError(
+        "\n\nDATA LOSS RISK — DATABASE_URL is not set on Railway.\n"
+        "Every redeploy wipes all user data (SQLite lives on an ephemeral filesystem).\n"
+        "Fix: Railway dashboard → your service → Variables → add DATABASE_URL\n"
+        "     (copy it from your PostgreSQL service's Connect tab)\n"
+    )
 
+connect_args = {"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
 engine = create_engine(DATABASE_URL, connect_args=connect_args)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

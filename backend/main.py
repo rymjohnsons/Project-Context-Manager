@@ -1,45 +1,25 @@
 from dotenv import load_dotenv
 load_dotenv()
 
+import logging
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 
 import models
-from database import engine
+from database import engine, DATABASE_URL
 from routes import lists, users
-from sqlalchemy import text
 
+logging.basicConfig(level=logging.INFO)
+_log = logging.getLogger(__name__)
+_log.info("Database: %s", "PostgreSQL" if not DATABASE_URL.startswith("sqlite") else "SQLite (local dev)")
+
+# Safety net for local dev where alembic upgrade head hasn't run yet.
+# On Railway the Procfile runs alembic first, so this is a no-op there.
 models.Base.metadata.create_all(bind=engine)
 
-# Lightweight ALTER TABLE migrations for columns added after initial deploy.
-# Each statement is wrapped individually so one failure doesn't block the rest.
-_migrations = [
-    # lists table
-    "ALTER TABLE lists ADD COLUMN starred BOOLEAN DEFAULT FALSE NOT NULL",
-    # urls table — new columns
-    "ALTER TABLE urls ADD COLUMN title VARCHAR",
-    "ALTER TABLE urls ADD COLUMN notes TEXT",
-    "ALTER TABLE urls ADD COLUMN last_opened TIMESTAMP WITH TIME ZONE",
-    "ALTER TABLE urls ADD COLUMN added_by_id INTEGER REFERENCES users(id)",
-    "ALTER TABLE urls ADD COLUMN starred BOOLEAN DEFAULT FALSE NOT NULL",
-    # ONBOARDING: work role field added during Tabrador rebrand
-    "ALTER TABLE users ADD COLUMN work_type VARCHAR",
-]
-
-for _sql in _migrations:
-    with engine.connect() as _conn:
-        try:
-            _conn.execute(text(_sql))
-            _conn.commit()
-        except Exception:
-            _conn.rollback()
-
-app = FastAPI(
-    title="Project Context Manager API",
-    version="1.0.0",
-)
+app = FastAPI(title="Tabrador API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
