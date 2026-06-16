@@ -83,7 +83,8 @@ async function getCurrentTab() {
 // ── List operations ────────────────────────────────────────────────────────────
 
 async function createList(name) {
-  name = (name || '').trim() || 'Untitled List';
+  // TERMINOLOGY: "Untitled Workspace" was "Untitled List"
+  name = (name || '').trim() || 'Untitled Workspace';
   await apiFetch('/lists', { method: 'POST', body: JSON.stringify({ name }) });
   await render();
 }
@@ -123,7 +124,11 @@ async function removeUrl(listId, urlId) {
   }
 }
 
-// ── Open All ───────────────────────────────────────────────────────────────────
+// ── Start Working / Wrap Up (was Open All / Close All) ────────────────────────
+// TIME_TRACKING: when time tracking is added here, use these conventions:
+//   "Time logged"    → "Billable hours"
+//   "Work session"   → "Client session"
+//   "Export"         → "Invoice ready export"
 
 async function openAll(listId) {
   const list = currentLists.find(l => l.id == listId);
@@ -140,7 +145,8 @@ async function openAll(listId) {
   await saveOpenTabs(openTabs);
 
   await render();
-  showToast(`Opened ${list.urls.length} tab${list.urls.length !== 1 ? 's' : ''}`, 'success');
+  // TERMINOLOGY: "Start working" framing for opening all resources
+  showToast(`Started working — ${list.urls.length} resource${list.urls.length !== 1 ? 's' : ''} opened`, 'success');
 }
 
 // ── Close All ──────────────────────────────────────────────────────────────────
@@ -159,7 +165,8 @@ async function closeAll(listId) {
   delete openTabs[listId];
   await saveOpenTabs(openTabs);
   await render();
-  showToast('Tabs closed.', 'success');
+  // TERMINOLOGY: "Wrapped up" was "Tabs closed"
+  showToast('Wrapped up.', 'success');
 }
 
 // ── Snapshot open tabs ─────────────────────────────────────────────────────────
@@ -176,16 +183,18 @@ async function snapshotTabs() {
   if (urls.length === 0) { showToast('No capturable tabs in this window.', 'warn'); return; }
 
   try {
+    // TERMINOLOGY: "Captured Session" was "Snapshot"
     const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     const list  = await apiFetch('/lists', {
       method: 'POST',
-      body: JSON.stringify({ name: `Snapshot — ${today}` }),
+      body: JSON.stringify({ name: `Captured Session — ${today}` }),
     });
     for (const url of urls) {
       await apiFetch(`/lists/${list.id}/urls`, { method: 'POST', body: JSON.stringify({ url }) });
     }
     await render();
-    showToast(`Captured ${urls.length} tab${urls.length !== 1 ? 's' : ''}!`, 'success');
+    // TERMINOLOGY: "resources captured" was "tabs captured"
+    showToast(`Session captured — ${urls.length} resource${urls.length !== 1 ? 's' : ''} saved!`, 'success');
   } catch (e) {
     showToast(e.message, 'error');
   }
@@ -235,7 +244,8 @@ async function render() {
     tabUrlEl.title       = currentUrl;
     const match = currentLists.find(l => l.urls.some(u => u.url === currentUrl));
     if (match) {
-      tabBadgeEl.textContent = `✓ In "${match.name}"`;
+      // TERMINOLOGY: "workspace" was "list"
+      tabBadgeEl.textContent = `✓ In workspace "${match.name}"`;
       tabBadgeEl.classList.remove('hidden');
     } else {
       tabBadgeEl.classList.add('hidden');
@@ -248,7 +258,8 @@ async function render() {
   // Quick-add dropdown
   const listSelect   = document.getElementById('list-select');
   const prevSelected = listSelect.value;
-  listSelect.innerHTML = '<option value="">— select a list —</option>';
+  // TERMINOLOGY: "workspace" was "list"
+  listSelect.innerHTML = '<option value="">— select a workspace —</option>';
   currentLists.forEach(l => {
     const opt = document.createElement('option');
     opt.value = l.id; opt.textContent = l.name;
@@ -262,7 +273,8 @@ async function render() {
   container.innerHTML = '';
 
   if (currentLists.length === 0) {
-    container.innerHTML = '<p class="empty-state">No lists yet — create one above.</p>';
+    // TERMINOLOGY: "No workspaces yet" was "No lists yet"
+    container.innerHTML = '<p class="empty-state">No workspaces yet — create one above.</p>';
   } else {
     currentLists.forEach(list => container.appendChild(buildCard(list, currentUrl, openTabs)));
   }
@@ -275,25 +287,27 @@ function buildCard(list, currentUrl, openTabs) {
   const card = document.createElement('div');
   card.className = 'list-card' + (isActive ? ' list-card--active' : '');
 
+  // TERMINOLOGY: shows title if available, falls back to URL; "resource" was "URL"
   const urlItems = list.urls.map(u => `
     <li class="url-item">
-      <span class="url-label" title="${esc(u.url)}">${esc(displayUrl(u.url))}</span>
-      <button class="remove-url-btn" data-list="${list.id}" data-url="${u.id}" title="Remove">×</button>
+      <span class="url-label" title="${esc(u.url)}">${u.title ? esc(u.title) : esc(displayUrl(u.url))}</span>
+      <button class="remove-url-btn" data-list="${list.id}" data-url="${u.id}" title="Remove resource">×</button>
     </li>
   `).join('');
 
+  // TERMINOLOGY: "Start Working" / "Wrap Up" / "resources" throughout
   card.innerHTML = `
     <div class="list-header">
       <input class="list-name-input" type="text" value="${esc(list.name)}"
              data-list="${list.id}" title="Click to rename" />
       <span class="url-count">${list.urls.length}</span>
-      <button class="btn-open open-all-btn" data-list="${list.id}">Open All</button>
-      ${hasTrackedTabs ? `<button class="btn-close close-all-btn" data-list="${list.id}">Close All</button>` : ''}
-      <button class="btn-delete delete-list-btn" data-list="${list.id}" title="Delete list">✕</button>
+      <button class="btn-open open-all-btn" data-list="${list.id}">Start Working</button>
+      ${hasTrackedTabs ? `<button class="btn-close close-all-btn" data-list="${list.id}">Wrap Up</button>` : ''}
+      <button class="btn-delete delete-list-btn" data-list="${list.id}" title="Delete workspace">✕</button>
     </div>
     ${list.urls.length > 0
       ? `<ul class="url-list">${urlItems}</ul>`
-      : '<p class="no-urls">No URLs yet — use Add Tab above.</p>'
+      : '<p class="no-urls">No resources yet — use Add Resource above.</p>'
     }
   `;
 
@@ -393,13 +407,15 @@ document.getElementById('logout-btn').addEventListener('click', logout);
 
 document.getElementById('add-btn').addEventListener('click', async () => {
   const listId = document.getElementById('list-select').value;
-  if (!listId) { showToast('Pick a list first.', 'error'); return; }
+  // TERMINOLOGY: "Pick a workspace first" was "Pick a list first"
+  if (!listId) { showToast('Pick a workspace first.', 'error'); return; }
   const tab = await getCurrentTab();
   if (!tab || !tab.url || tab.url.startsWith('chrome://')) {
     showToast('No valid page to add.', 'error'); return;
   }
   const result = await addUrlToList(listId, tab.url);
-  showToast(result === 'duplicate' ? 'Already in this list.' : 'Added!',
+  // TERMINOLOGY: "Already in this workspace" / "Resource added!" was "Already in this list" / "Added!"
+  showToast(result === 'duplicate' ? 'Already in this workspace.' : 'Resource added!',
             result === 'duplicate' ? 'warn' : 'success');
 });
 
@@ -419,7 +435,8 @@ document.getElementById('create-list-btn').addEventListener('click', async () =>
   await createList(input.value);
   input.value = '';
   document.getElementById('new-list-form').classList.add('hidden');
-  showToast('List created!', 'success');
+  // TERMINOLOGY: "Workspace created!" was "List created!"
+  showToast('Workspace created!', 'success');
 });
 
 document.getElementById('new-list-name').addEventListener('keydown', e => {

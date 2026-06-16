@@ -47,6 +47,19 @@ def get_me(current_user: models.User = Depends(auth.get_current_user)):
     return current_user
 
 
+# ONBOARDING: stores the work-role answer collected on first signup
+@router.patch("/onboarding", response_model=schemas.UserOut)
+def save_onboarding(
+    data: schemas.OnboardingUpdate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    current_user.work_type = data.work_type
+    db.commit()
+    db.refresh(current_user)
+    return current_user
+
+
 @router.post("/forgot-password", response_model=schemas.ForgotPasswordResponse)
 def forgot_password(req: schemas.ForgotPasswordRequest, db: Session = Depends(get_db)):
     token_str = secrets.token_urlsafe(32)

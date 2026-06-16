@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Project Context Manager</title>
+  <!-- BRANDING: "Tabrador" was "Project Context Manager" -->
+  <title>Tabrador</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
@@ -10,7 +11,8 @@
   <!-- Login screen — shown when no JWT token is stored, hidden after login -->
   <div id="login-screen">
     <div class="login-card">
-      <h2 class="login-title">Project <span>Context</span> Manager</h2>
+      <!-- BRANDING: app name + tagline -->
+      <h2 class="login-title">Tabrador <span>— Fetch your tabs</span></h2>
       <div id="login-error" class="login-error hidden"></div>
       <div class="login-form">
         <input type="email"    id="login-email"    placeholder="Email address" autocomplete="email" />
@@ -33,23 +35,26 @@
       <span id="current-tab-badge" class="tab-badge hidden">✓ Saved</span>
     </div>
 
-    <!-- Quick-add: pick a list then click Add Tab -->
+    <!-- Quick-add: pick a workspace then click Add Resource -->
+    <!-- TERMINOLOGY: "workspace" was "list", "Add Resource" was "Add Tab" -->
     <div class="section">
       <select id="list-select">
-        <option value="">— select a list —</option>
+        <option value="">— select a workspace —</option>
       </select>
-      <button id="add-btn" class="btn-primary">Add Tab</button>
+      <button id="add-btn" class="btn-primary">Add Resource</button>
     </div>
 
-    <!-- Toolbar: create list + snapshot -->
+    <!-- Toolbar: create workspace + capture session -->
+    <!-- TERMINOLOGY: "New Workspace" was "New List", "Capture Session" was "Snapshot Tabs" -->
     <div class="section" style="padding-top:0.35rem;padding-bottom:0.35rem;">
-      <button id="new-list-btn"  class="btn-secondary" style="flex:1">+ New List</button>
-      <button id="snapshot-btn"  class="btn-secondary" style="flex:1">⊞ Snapshot Tabs</button>
+      <button id="new-list-btn"  class="btn-secondary" style="flex:1">+ New Workspace</button>
+      <button id="snapshot-btn"  class="btn-secondary" style="flex:1">⊞ Capture Session</button>
     </div>
 
-    <!-- New list form — hidden until + New List is clicked -->
+    <!-- New workspace form — hidden until + New Workspace is clicked -->
+    <!-- TERMINOLOGY: "Client or project name" was "List name" -->
     <div id="new-list-form" class="section hidden">
-      <input type="text" id="new-list-name" placeholder="List name…" />
+      <input type="text" id="new-list-name" placeholder="Client or project name…" />
       <button id="create-list-btn" class="btn-primary">Create</button>
       <button id="cancel-new-list-btn" class="btn-icon" title="Cancel">✕</button>
     </div>
@@ -57,7 +62,7 @@
     <!-- Toast notification -->
     <div id="status-toast" class="status-toast hidden" role="status"></div>
 
-    <!-- List cards rendered by popup.js -->
+    <!-- Workspace cards rendered by popup.js -->
     <div id="lists-container" class="lists-container"></div>
 
     <!-- Footer: logged-in email + logout -->

@@ -63,8 +63,15 @@ class UserOut(BaseModel):
     id:         int
     email:      str
     created_at: datetime
+    # ONBOARDING: work role chosen during first-login flow
+    work_type:  str | None = None
 
     model_config = {"from_attributes": True}
+
+
+class OnboardingUpdate(BaseModel):
+    # ONBOARDING: accepted values mirror the options shown on the onboarding screen
+    work_type: str
 
 
 # ── Auth schemas ───────────────────────────────────────────────────────────────

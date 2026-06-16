@@ -16,6 +16,8 @@ class User(Base):
     email           = Column(String, unique=True, index=True, nullable=False)
     hashed_password = Column(String, nullable=False)
     created_at      = Column(DateTime(timezone=True), default=utcnow)
+    # ONBOARDING: work role collected after first signup — used for personalisation
+    work_type       = Column(String, nullable=True)
 
     lists = relationship("List", back_populates="owner", cascade="all, delete-orphan")
 

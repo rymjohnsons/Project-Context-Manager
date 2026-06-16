@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Project Context Manager</title>
+  <!-- BRANDING: app renamed from "Project Context Manager" to "Tabrador" -->
+  <title>Tabrador — Fetch your tabs</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -413,6 +414,40 @@
     .url-notes-input:hover  { border-color: #C5D8F0; }
     .url-notes-input:focus  { border-color: #1E3A8A; background: #F4F1EA; }
     .url-notes-input::placeholder { color: #C5D8F0; font-style: italic; }
+
+    /* ── Onboarding ── */
+    /* ONBOARDING: styles for first-signup role question */
+    .onboarding-options { display: flex; flex-direction: column; gap: 0.5rem; }
+    .onboarding-option {
+      background: #F4F1EA; border: 1.5px solid #C5D8F0; border-radius: 8px;
+      color: #0F1E4A; font-size: 0.875rem; font-weight: 500;
+      padding: 0.75rem 1rem; text-align: left; cursor: pointer;
+      transition: border-color 0.12s, background 0.12s, color 0.12s; font-family: inherit;
+    }
+    .onboarding-option:hover { border-color: #1E3A8A; background: #EEF4FB; color: #1E3A8A; }
+
+    /* ── Template picker ── */
+    /* TEMPLATE: styles for workspace template grid */
+    .template-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    .template-card {
+      background: #F4F1EA; border: 1.5px solid #C5D8F0; border-radius: 10px;
+      padding: 1rem; text-align: left; cursor: pointer;
+      display: flex; flex-direction: column; gap: 0.3rem;
+      transition: border-color 0.12s, background 0.12s; font-family: inherit;
+    }
+    .template-card:hover { border-color: #1E3A8A; background: #EEF4FB; }
+    .template-icon { font-size: 1.4rem; line-height: 1; }
+    .template-card strong { font-size: 0.82rem; color: #0F1E4A; display: block; }
+    .template-card span:last-child { font-size: 0.71rem; color: #8EAAD8; }
+
+    /* ── Sidebar template button ── */
+    /* TEMPLATE: "Start from template" link in new-workspace form */
+    .sidebar-template-btn {
+      background: transparent; border: none; color: #8EAAD8; font-size: 0.72rem;
+      cursor: pointer; padding: 0.1rem 0; text-align: left; font-family: inherit;
+      text-decoration: underline; display: block; width: 100%;
+    }
+    .sidebar-template-btn:hover { color: #C5D8F0; }
   </style>
 </head>
 <body>
@@ -420,8 +455,9 @@
 <!-- ── Auth overlay ── -->
 <div id="auth-overlay" class="auth-overlay">
   <div class="auth-card">
-    <h1>Project <span>Context</span> Manager</h1>
-    <p class="auth-subtitle">Save and open URL lists across sessions.</p>
+    <!-- BRANDING: app name + tagline -->
+    <h1>Tabrador</h1>
+    <p class="auth-subtitle">Fetch your tabs — built for client-facing professionals.</p>
     <div id="auth-tabs" class="auth-tabs">
       <button id="tab-login"    class="auth-tab active">Log In</button>
       <button id="tab-register" class="auth-tab">Register</button>
@@ -463,36 +499,61 @@
   </div>
 </div>
 
+<!-- ONBOARDING: first-signup role question — shown once after account creation -->
+<div id="onboarding-overlay" class="auth-overlay hidden">
+  <div class="auth-card" style="max-width:440px;">
+    <h1>Welcome to Tabrador</h1>
+    <p class="auth-subtitle">One quick question to personalise your experience.</p>
+    <p style="font-size:0.85rem;font-weight:600;color:#0F1E4A;text-align:center;">What best describes your work?</p>
+    <div class="onboarding-options">
+      <button class="onboarding-option" data-type="independent_consultant">Independent consultant</button>
+      <button class="onboarding-option" data-type="agency_firm">Agency or firm</button>
+      <button class="onboarding-option" data-type="internal_pm">Internal project manager</button>
+      <button class="onboarding-option" data-type="it_technical">IT or technical team</button>
+      <button class="onboarding-option" data-type="other">Something else</button>
+    </div>
+    <p style="text-align:center;margin-top:0.25rem;">
+      <button class="auth-back-link" id="onboarding-skip">Skip for now</button>
+    </p>
+  </div>
+</div>
+
 <!-- ── Main app ── -->
 <div id="app" class="hidden">
 
   <!-- Sidebar -->
   <nav class="sidebar">
     <div class="sidebar-brand">
-      <div class="brand-name">Project <span>Context</span></div>
-      <div class="brand-sub">URL LIST MANAGER</div>
+      <!-- BRANDING: sidebar brand -->
+      <div class="brand-name">Tabrador</div>
+      <div class="brand-sub">FETCH YOUR TABS</div>
     </div>
 
     <div class="sidebar-scroll">
 
       <div class="nav-section">
         <div class="nav-section-header">
-          <span class="nav-section-label">My Lists</span>
-          <button id="new-list-btn" class="nav-add-btn" title="New list">+</button>
+          <!-- TERMINOLOGY: "My Workspaces" was "My Lists" -->
+          <span class="nav-section-label">My Workspaces</span>
+          <button id="new-list-btn" class="nav-add-btn" title="New workspace">+</button>
         </div>
         <div id="new-list-form" class="sidebar-new-list hidden">
-          <input type="text" id="new-list-name" placeholder="List name…" />
+          <!-- TERMINOLOGY: "Client or project name" was "List name" -->
+          <input type="text" id="new-list-name" placeholder="Client or project name…" />
           <div class="sidebar-form-row">
             <button id="create-list-btn"     class="btn-sm-primary">Create</button>
             <button id="cancel-new-list-btn" class="btn-sm-secondary">Cancel</button>
           </div>
+          <!-- TEMPLATE: link to open template picker -->
+          <button id="template-btn" class="sidebar-template-btn">⊞ Start from template</button>
         </div>
         <div id="sidebar-lists"></div>
       </div>
 
       <div class="nav-section">
         <div class="nav-section-header">
-          <span class="nav-section-label">Shared With Me</span>
+          <!-- TERMINOLOGY: "Team Workspaces" was "Shared With Me" -->
+          <span class="nav-section-label">Team Workspaces</span>
         </div>
         <p class="nav-coming-soon">Coming soon</p>
       </div>
@@ -507,7 +568,8 @@
     </div><!-- /.sidebar-scroll -->
 
     <div class="sidebar-footer">
-      <button id="snapshot-btn" class="sidebar-footer-btn snapshot">⊞ Snapshot Tabs</button>
+      <!-- TERMINOLOGY: "Capture Current Session" was "Snapshot Tabs" -->
+      <button id="snapshot-btn" class="sidebar-footer-btn snapshot">⊞ Capture Session</button>
       <div class="sidebar-placeholder">⚙ Account Settings</div>
       <div class="sidebar-placeholder">👤 Account Management</div>
       <div class="sidebar-user">
@@ -526,36 +588,41 @@
         <p id="import-banner-desc"></p>
       </div>
       <div class="import-banner-actions">
-        <button class="btn-import"  id="banner-import-btn">Add to My Lists</button>
+        <!-- TERMINOLOGY: "Add to My Workspaces" was "Add to My Lists" -->
+        <button class="btn-import"  id="banner-import-btn">Add to My Workspaces</button>
         <button class="btn-dismiss" id="banner-dismiss-btn">Dismiss</button>
       </div>
     </div>
 
     <div id="welcome-state" class="welcome-state">
       <div class="welcome-inner">
+        <!-- TERMINOLOGY: welcome state updated to workspace framing -->
         <div class="welcome-icon">📋</div>
-        <h2>Select a list from the sidebar</h2>
-        <p>Or click + next to My Lists to create a new one.</p>
+        <h2>Select a workspace from the sidebar</h2>
+        <p>Or click + next to My Workspaces to create a new one.</p>
       </div>
     </div>
 
     <div id="list-detail" class="list-detail hidden">
       <div class="detail-header">
         <div class="detail-title-row">
-          <input type="text" id="detail-list-name" class="detail-name-input" aria-label="List name" />
+          <!-- TERMINOLOGY: aria-label updated -->
+          <input type="text" id="detail-list-name" class="detail-name-input" aria-label="Workspace name" />
           <span id="detail-url-count" class="detail-url-count"></span>
         </div>
         <div class="detail-action-bar">
-          <button id="open-all-btn"    class="btn-open">Open All ↗</button>
-          <button id="close-all-btn"   class="btn-close hidden">Close All</button>
+          <!-- TERMINOLOGY: "Start Working" was "Open All", "Wrap Up" was "Close All", "Delete Workspace" was "Delete List" -->
+          <button id="open-all-btn"    class="btn-open">Start Working ↗</button>
+          <button id="close-all-btn"   class="btn-close hidden">Wrap Up</button>
           <button id="star-btn"        class="btn-star">☆ Star</button>
           <button id="share-btn"       class="btn-share">Share</button>
-          <button id="delete-list-btn" class="btn-danger-outline">Delete List</button>
+          <button id="delete-list-btn" class="btn-danger-outline">Delete Workspace</button>
         </div>
       </div>
 
       <div id="detail-url-table-header" class="detail-url-table-header hidden">
-        <span>URL</span>
+        <!-- TERMINOLOGY: "Resource" was "URL" -->
+        <span>Resource</span>
         <span>Added By</span>
         <span>Last Opened</span>
         <span>Actions</span>
@@ -563,28 +630,65 @@
       <ul id="detail-url-list" class="detail-url-list"></ul>
 
       <div class="detail-add-row">
-        <input type="text" id="detail-add-url" placeholder="Paste a URL and press Enter…" />
-        <button id="detail-add-btn" class="btn-primary">Add</button>
+        <!-- TERMINOLOGY: "Add Resource" was "Add URL" -->
+        <input type="text" id="detail-add-url" placeholder="Paste a resource URL and press Enter…" />
+        <button id="detail-add-btn" class="btn-primary">Add Resource</button>
       </div>
     </div>
 
   </main>
 </div><!-- /#app -->
 
-<!-- Snapshot modal -->
+<!-- TERMINOLOGY: "Capture Session" modal was "Snapshot Tabs" -->
 <div id="snapshot-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
   <div class="modal">
-    <h2 id="modal-title">Snapshot Tabs → New List</h2>
+    <h2 id="modal-title">Capture Current Session → New Workspace</h2>
     <p class="tip">
-      Web pages can't read your open tabs directly — that requires a browser extension.
-      Paste one URL per line below to bulk-import them. Use a browser extension like
+      Web pages can't read your open tabs directly — that requires the Tabrador browser extension.
+      Paste one resource URL per line below to bulk-import them. Use a browser extension like
       <em>Tab Copy</em> or <em>Copy All URLs</em> to grab your current tabs first.
     </p>
-    <input type="text" id="snapshot-list-name" placeholder="List name (e.g. Research – Jun 4)" />
+    <!-- TERMINOLOGY: "Client or project name" was "List name" -->
+    <input type="text" id="snapshot-list-name" placeholder="Client or project name (e.g. Acme Corp – Jun 4)" />
+    <!-- TERMINOLOGY: resource URLs -->
     <textarea id="snapshot-urls" placeholder="https://example.com&#10;https://docs.something.dev/guide&#10;…"></textarea>
     <div class="modal-actions">
       <button class="btn-secondary" id="modal-cancel">Cancel</button>
-      <button class="btn-primary"   id="modal-import">Import URLs</button>
+      <!-- TERMINOLOGY: "Import Resources" was "Import URLs" -->
+      <button class="btn-primary"   id="modal-import">Import Resources</button>
+    </div>
+  </div>
+</div>
+
+<!-- TEMPLATE: workspace template picker modal -->
+<div id="template-modal" class="modal-overlay hidden" role="dialog" aria-modal="true">
+  <div class="modal">
+    <h2>Start from a template</h2>
+    <p>Choose a starter workspace — rename it and swap the placeholder resources for your real ones.</p>
+    <div class="template-grid">
+      <button class="template-card" data-template="consultant">
+        <span class="template-icon">💼</span>
+        <strong>Consultant Starter Pack</strong>
+        <span>CRM · Project tracker · Client email · Invoicing</span>
+      </button>
+      <button class="template-card" data-template="it">
+        <span class="template-icon">🖥</span>
+        <strong>IT Tech Daily Briefing</strong>
+        <span>Ticket system · Monitoring · Documentation wiki</span>
+      </button>
+      <button class="template-card" data-template="pm">
+        <span class="template-icon">📋</span>
+        <strong>Project Manager Toolkit</strong>
+        <span>Board · Spreadsheet · Team comms · Meeting notes</span>
+      </button>
+      <button class="template-card" data-template="agency">
+        <span class="template-icon">🎨</span>
+        <strong>Agency Client Workspace</strong>
+        <span>Project mgmt · Design · Client portal · Reporting</span>
+      </button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="template-cancel">Cancel</button>
     </div>
   </div>
 </div>
@@ -686,7 +790,8 @@ async function submitAuth() {
   setAuthError('');
 
   try {
-    if (authMode === 'register') {
+    const isNewAccount = authMode === 'register';
+    if (isNewAccount) {
       await apiFetch('/users/register', { method: 'POST', body: JSON.stringify({ email, password }) });
     }
     const { access_token } = await apiFetch('/users/login', {
@@ -694,9 +799,15 @@ async function submitAuth() {
     });
     setToken(access_token);
     const user = await apiFetch('/users/me');
-    showApp(user.email);
-    await render();
-    checkShareLink();
+    // ONBOARDING: new accounts go to role question before the app
+    if (isNewAccount) {
+      document.getElementById('user-email').textContent = user.email;
+      showOnboarding();
+    } else {
+      showApp(user.email);
+      await render();
+      checkShareLink();
+    }
   } catch (e) {
     setAuthError(e.message);
   } finally {
@@ -710,6 +821,107 @@ function logout() {
   currentLists = [];
   selectedListId = null;
   showAuthScreen();
+}
+
+// ── Onboarding ────────────────────────────────────────────────────────────────
+// ONBOARDING: shown once after first account creation
+
+function showOnboarding() {
+  document.getElementById('auth-overlay').classList.add('hidden');
+  document.getElementById('onboarding-overlay').classList.remove('hidden');
+}
+
+async function completeOnboarding(workType) {
+  if (workType) {
+    try {
+      await apiFetch('/users/onboarding', {
+        method: 'PATCH',
+        body: JSON.stringify({ work_type: workType }),
+      });
+    } catch { /* non-fatal — onboarding is optional */ }
+  }
+  document.getElementById('onboarding-overlay').classList.add('hidden');
+  const email = document.getElementById('user-email').textContent;
+  showApp(email);
+  await render();
+  checkShareLink();
+}
+
+// ── Workspace templates ────────────────────────────────────────────────────────
+// TEMPLATE: starter workspaces pre-loaded with placeholder resources
+
+const WORKSPACE_TEMPLATES = {
+  consultant: {
+    // TERMINOLOGY: "workspace" was "list"; "resources" were "URLs"
+    name: 'Consultant Starter Pack',
+    resources: [
+      { url: 'https://salesforce.com',  notes: 'CRM — replace with your CRM' },
+      { url: 'https://notion.so',       notes: 'Project tracker — replace with your tracker' },
+      { url: 'https://mail.google.com', notes: 'Client email' },
+      { url: 'https://freshbooks.com',  notes: 'Invoicing — replace with your invoicing tool' },
+    ],
+  },
+  it: {
+    name: 'IT Tech Daily Briefing',
+    resources: [
+      { url: 'https://jira.atlassian.com',       notes: 'Ticket system — replace with your system' },
+      { url: 'https://grafana.com',              notes: 'Monitoring dashboard — replace with your dashboard' },
+      { url: 'https://confluence.atlassian.com', notes: 'Documentation wiki — replace with your wiki' },
+    ],
+  },
+  pm: {
+    name: 'Project Manager Toolkit',
+    resources: [
+      { url: 'https://jira.atlassian.com',           notes: 'Project board — replace with your board' },
+      { url: 'https://docs.google.com/spreadsheets', notes: 'Spreadsheet tracker — replace with your tracker' },
+      { url: 'https://slack.com',                    notes: 'Team communication — replace with your tool' },
+      { url: 'https://calendar.google.com',          notes: 'Meeting notes & calendar' },
+    ],
+  },
+  agency: {
+    name: 'Agency Client Workspace',
+    resources: [
+      { url: 'https://monday.com',          notes: 'Project management — replace with your tool' },
+      { url: 'https://figma.com',           notes: 'Design tool — replace with your design tool' },
+      { url: 'https://notion.so',           notes: 'Client portal — replace with your portal link' },
+      { url: 'https://analytics.google.com', notes: 'Reporting dashboard — replace with your dashboard' },
+    ],
+  },
+};
+
+function openTemplateModal() {
+  document.getElementById('new-list-form').classList.add('hidden');
+  document.getElementById('new-list-name').value = '';
+  document.getElementById('template-modal').classList.remove('hidden');
+}
+
+function closeTemplateModal() {
+  document.getElementById('template-modal').classList.add('hidden');
+}
+
+async function createFromTemplate(templateKey) {
+  const tmpl = WORKSPACE_TEMPLATES[templateKey];
+  if (!tmpl) return;
+  closeTemplateModal();
+  try {
+    // TERMINOLOGY: creates a "workspace" (was "list") with "resources" (was "URLs")
+    const list = await apiFetch('/lists', { method: 'POST', body: JSON.stringify({ name: tmpl.name }) });
+    for (const r of tmpl.resources) {
+      const urlObj = await apiFetch(`/lists/${list.id}/urls`, {
+        method: 'POST', body: JSON.stringify({ url: r.url }),
+      });
+      if (r.notes && urlObj && urlObj.id) {
+        await apiFetch(`/lists/${list.id}/urls/${urlObj.id}/notes`, {
+          method: 'PATCH', body: JSON.stringify({ notes: r.notes }),
+        });
+      }
+    }
+    if (list && list.id) selectedListId = list.id;
+    await render();
+    showErrorToast(''); // clear any previous
+  } catch (e) {
+    showErrorToast(e.message);
+  }
 }
 
 // ── Forgot / reset password ───────────────────────────────────────────────────
@@ -767,7 +979,8 @@ const openedLists    = new Set();
 // ── List operations ───────────────────────────────────────────────────────────
 
 async function createList(name) {
-  name = (name || '').trim() || 'Untitled List';
+  // TERMINOLOGY: "Untitled Workspace" was "Untitled List"
+  name = (name || '').trim() || 'Untitled Workspace';
   const newList = await apiFetch('/lists', { method: 'POST', body: JSON.stringify({ name }) });
   if (newList && newList.id) selectedListId = newList.id;
   await render();
@@ -839,7 +1052,11 @@ async function toggleStar() {
   }
 }
 
-// ── Open All / Close All ──────────────────────────────────────────────────────
+// ── Start Working / Wrap Up (was Open All / Close All) ───────────────────────
+// TIME_TRACKING: when time tracking is added here, use these conventions:
+//   "Time logged"    → "Billable hours"
+//   "Work session"   → "Client session"
+//   "Export"         → "Invoice ready export"
 
 function openAll() {
   const list = currentLists.find(l => l.id == selectedListId);
@@ -979,7 +1196,8 @@ function closeSnapshotModal() {
 }
 
 async function importSnapshot() {
-  const name = document.getElementById('snapshot-list-name').value.trim() || 'Snapshot';
+  // TERMINOLOGY: "Snapshot" used as fallback workspace name
+  const name = document.getElementById('snapshot-list-name').value.trim() || 'Captured Session';
   const raw  = document.getElementById('snapshot-urls').value;
   const urls = raw.split('\n').map(s => normaliseUrl(s)).filter(Boolean);
 
@@ -1066,7 +1284,8 @@ function renderSidebar() {
   if (currentLists.length === 0) {
     const p = document.createElement('p');
     p.className   = 'nav-empty-hint';
-    p.textContent = 'No lists yet — click + to create one.';
+    // TERMINOLOGY: "No workspaces yet" was "No lists yet"
+    p.textContent = 'No workspaces yet — click + to create one.';
     myListsContainer.appendChild(p);
   } else {
     currentLists.forEach(list => myListsContainer.appendChild(buildNavItem(list)));
@@ -1105,8 +1324,9 @@ function renderDetail() {
   detailEl.classList.remove('hidden');
 
   document.getElementById('detail-list-name').value  = list.name;
+  // TERMINOLOGY: "resource(s)" was "URL(s)"
   document.getElementById('detail-url-count').textContent =
-    `${list.urls.length} URL${list.urls.length !== 1 ? 's' : ''}`;
+    `${list.urls.length} resource${list.urls.length !== 1 ? 's' : ''}`;
 
   const starBtn = document.getElementById('star-btn');
   starBtn.textContent = list.starred ? '★ Starred' : '☆ Star';
@@ -1120,7 +1340,8 @@ function renderDetail() {
 
   if (list.urls.length === 0) {
     tableHeader.classList.add('hidden');
-    urlList.innerHTML = '<li class="detail-empty">No URLs yet — paste one below.</li>';
+    // TERMINOLOGY: "No resources yet" was "No URLs yet"
+    urlList.innerHTML = '<li class="detail-empty">No resources yet — paste a URL below.</li>';
   } else {
     tableHeader.classList.remove('hidden');
     list.urls.forEach(u => {
@@ -1157,7 +1378,7 @@ function renderDetail() {
         </div>
         <div class="url-notes-row">
           <input type="text" class="url-notes-input"
-                 placeholder="Add a note…"
+                 placeholder="Resource notes…"
                  value="${esc(u.notes || '')}"
                  data-list="${list.id}" data-url="${u.id}" />
         </div>
@@ -1308,6 +1529,21 @@ document.getElementById('snapshot-modal').addEventListener('keydown', e => {
 
 document.getElementById('banner-import-btn').addEventListener('click',  importSharedList);
 document.getElementById('banner-dismiss-btn').addEventListener('click', dismissImportBanner);
+
+// ONBOARDING: role selection buttons
+document.querySelectorAll('.onboarding-option').forEach(btn => {
+  btn.addEventListener('click', () => completeOnboarding(btn.dataset.type));
+});
+document.getElementById('onboarding-skip').addEventListener('click', () => completeOnboarding(null));
+
+// TEMPLATE: template picker
+document.getElementById('template-btn').addEventListener('click', openTemplateModal);
+document.getElementById('template-cancel').addEventListener('click', closeTemplateModal);
+document.getElementById('template-modal').addEventListener('click', e => {
+  const card = e.target.closest('.template-card');
+  if (card) createFromTemplate(card.dataset.template);
+  if (e.target === e.currentTarget) closeTemplateModal();
+});
 
 // ── Boot ──────────────────────────────────────────────────────────────────────
 

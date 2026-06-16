@@ -16,9 +16,11 @@ router = APIRouter(prefix="/lists", tags=["lists"])
 def get_list_or_404(list_id: int, user: models.User, db: Session) -> models.List:
     lst = db.query(models.List).filter(models.List.id == list_id).first()
     if lst is None:
-        raise HTTPException(status_code=404, detail="List not found.")
+        # TERMINOLOGY: "workspace" used in all user-facing messages (was "list")
+        raise HTTPException(status_code=404, detail="Workspace not found.")
     if lst.owner_id != user.id:
-        raise HTTPException(status_code=403, detail="You don't own this list.")
+        # TERMINOLOGY: "workspace" used in all user-facing messages (was "list")
+        raise HTTPException(status_code=403, detail="You don't have access to this workspace.")
     return lst
 
 
@@ -159,7 +161,8 @@ def remove_url(
         models.Url.list_id == list_id,
     ).first()
     if url is None:
-        raise HTTPException(status_code=404, detail="URL not found in this list.")
+        # TERMINOLOGY: "resource" used in all user-facing messages (was "URL")
+        raise HTTPException(status_code=404, detail="Resource not found in this workspace.")
     db.delete(url)
     db.commit()
 
