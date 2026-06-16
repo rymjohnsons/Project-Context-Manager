@@ -72,6 +72,7 @@ async function saveOpenTabs(openTabs) {
 // ── Current lists cache ────────────────────────────────────────────────────────
 
 let currentLists = [];
+const dismissedLargeWarning = new Set();
 
 // ── Tab helper ─────────────────────────────────────────────────────────────────
 
@@ -134,10 +135,22 @@ async function openAll(listId) {
   const list = currentLists.find(l => l.id == listId);
   if (!list || list.urls.length === 0) return;
 
+  const urls   = list.urls;
+  const total  = urls.length;
   const tabIds = [];
-  for (const entry of list.urls) {
-    const tab = await chrome.tabs.create({ url: entry.url, active: false });
-    tabIds.push(tab.id);
+
+  for (let i = 0; i < total; i += 10) {
+    const batch = urls.slice(i, i + 10);
+
+    for (const entry of batch) {
+      const tab = await chrome.tabs.create({ url: entry.url, active: false });
+      tabIds.push(tab.id);
+    }
+
+    const opened = Math.min(i + 10, total);
+    if (total > 10 && opened < total) showToast(`Opening workspace… ${opened} of ${total} tabs`, 'success');
+
+    if (i + 10 < total) await new Promise(r => setTimeout(r, 1500));
   }
 
   const openTabs = await loadOpenTabs();
@@ -146,7 +159,7 @@ async function openAll(listId) {
 
   await render();
   // TERMINOLOGY: "Start working" framing for opening all resources
-  showToast(`Started working — ${list.urls.length} resource${list.urls.length !== 1 ? 's' : ''} opened`, 'success');
+  showToast(`Started working — ${total} resource${total !== 1 ? 's' : ''} opened`, 'success');
 }
 
 // ── Close All ──────────────────────────────────────────────────────────────────
@@ -281,8 +294,9 @@ async function render() {
 }
 
 function buildCard(list, currentUrl, openTabs) {
-  const isActive       = list.urls.some(u => u.url === currentUrl);
-  const hasTrackedTabs = (openTabs[list.id] || []).length > 0;
+  const isActive         = list.urls.some(u => u.url === currentUrl);
+  const hasTrackedTabs   = (openTabs[list.id] || []).length > 0;
+  const showLargeWarning = list.urls.length > 30 && !dismissedLargeWarning.has(list.id);
 
   const card = document.createElement('div');
   card.className = 'list-card' + (isActive ? ' list-card--active' : '');
@@ -305,6 +319,11 @@ function buildCard(list, currentUrl, openTabs) {
       ${hasTrackedTabs ? `<button class="btn-close close-all-btn" data-list="${list.id}">Wrap Up</button>` : ''}
       <button class="btn-delete delete-list-btn" data-list="${list.id}" title="Delete workspace">✕</button>
     </div>
+    ${showLargeWarning ? `
+    <div class="large-workspace-warning">
+      <span>Large workspace — tabs open in batches to keep Chrome stable.</span>
+      <button class="dismiss-large-warning-btn" data-list="${list.id}" title="Dismiss">×</button>
+    </div>` : ''}
     ${list.urls.length > 0
       ? `<ul class="url-list">${urlItems}</ul>`
       : '<p class="no-urls">No resources yet — use Add Resource above.</p>'
@@ -465,6 +484,9 @@ document.getElementById('lists-container').addEventListener('click', async e => 
     showToast('List deleted.', 'success');
   } else if (btn.classList.contains('remove-url-btn')) {
     await removeUrl(btn.dataset.list, btn.dataset.url);
+  } else if (btn.classList.contains('dismiss-large-warning-btn')) {
+    dismissedLargeWarning.add(parseInt(btn.dataset.list));
+    btn.closest('.large-workspace-warning').remove();
   }
 });
 

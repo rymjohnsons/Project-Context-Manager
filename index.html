@@ -448,6 +448,21 @@
       text-decoration: underline; display: block; width: 100%;
     }
     .sidebar-template-btn:hover { color: #C5D8F0; }
+
+    /* ── Large workspace warning ── */
+    .large-workspace-warning {
+      display: flex; align-items: center; gap: 0.75rem;
+      background: #EEF4FB; border: 1px solid #C5D8F0; border-radius: 6px;
+      padding: 0.5rem 0.85rem; font-size: 0.78rem; color: #2D4FA0;
+      margin-bottom: 0.75rem; flex-shrink: 0; line-height: 1.4;
+    }
+    .large-workspace-warning span { flex: 1; }
+    .large-workspace-warning-dismiss {
+      background: transparent; border: none; color: #8EAAD8;
+      font-size: 1rem; line-height: 1; padding: 0.1rem; cursor: pointer;
+      flex-shrink: 0; font-family: inherit;
+    }
+    .large-workspace-warning-dismiss:hover { color: #1E3A8A; }
   </style>
 </head>
 <body>
@@ -618,6 +633,11 @@
           <button id="share-btn"       class="btn-share">Share</button>
           <button id="delete-list-btn" class="btn-danger-outline">Delete Workspace</button>
         </div>
+      </div>
+
+      <div id="large-workspace-warning" class="large-workspace-warning hidden">
+        <span>Large workspace detected. Tabrador will open tabs in batches to keep Chrome running smoothly.</span>
+        <button id="dismiss-large-warning" class="large-workspace-warning-dismiss" title="Dismiss">×</button>
       </div>
 
       <div id="detail-url-table-header" class="detail-url-table-header hidden">
@@ -973,8 +993,9 @@ async function submitReset() {
 
 let currentLists   = [];
 let selectedListId = null;
-const trackedWindows = {};
-const openedLists    = new Set();
+const trackedWindows        = {};
+const openedLists           = new Set();
+const dismissedLargeWarning = new Set();
 
 // ── List operations ───────────────────────────────────────────────────────────
 
@@ -1058,17 +1079,39 @@ async function toggleStar() {
 //   "Work session"   → "Client session"
 //   "Export"         → "Invoice ready export"
 
-function openAll() {
+async function openAll() {
   const list = currentLists.find(l => l.id == selectedListId);
   if (!list || list.urls.length === 0) return;
+
   openedLists.add(String(selectedListId));
   updateOpenCloseButtons();
-  list.urls.forEach(u => {
+
+  const urls     = list.urls;
+  const total    = urls.length;
+  const closeBtn = document.getElementById('close-all-btn');
+
+  // Fire-and-forget: record last_opened timestamps for all URLs
+  urls.forEach(u => {
     apiFetch(`/lists/${selectedListId}/urls/${u.id}/open`, { method: 'POST' }).catch(() => {});
   });
-  trackedWindows[selectedListId] = list.urls
-    .map(u => window.open(u.url, '_blank'))
-    .filter(Boolean);
+
+  trackedWindows[selectedListId] = [];
+
+  for (let i = 0; i < total; i += 10) {
+    const batch = urls.slice(i, i + 10);
+
+    batch.forEach(u => {
+      const w = window.open(u.url, '_blank');
+      if (w) trackedWindows[selectedListId].push(w);
+    });
+
+    const opened = Math.min(i + 10, total);
+    if (total > 10 && opened < total) closeBtn.textContent = `Opening… ${opened} of ${total}`;
+
+    if (i + 10 < total) await new Promise(r => setTimeout(r, 1500));
+  }
+
+  if (total > 10) closeBtn.textContent = 'Wrap Up';
 }
 
 async function toggleUrlStar(listId, urlId, currentStarred) {
@@ -1334,6 +1377,13 @@ function renderDetail() {
 
   updateOpenCloseButtons();
 
+  const warningEl = document.getElementById('large-workspace-warning');
+  if (list.urls.length > 30 && !dismissedLargeWarning.has(selectedListId)) {
+    warningEl.classList.remove('hidden');
+  } else {
+    warningEl.classList.add('hidden');
+  }
+
   const tableHeader = document.getElementById('detail-url-table-header');
   const urlList     = document.getElementById('detail-url-list');
   urlList.innerHTML = '';
@@ -1464,6 +1514,10 @@ document.getElementById('new-list-name').addEventListener('keydown', e => {
 
 document.getElementById('open-all-btn').addEventListener('click', openAll);
 document.getElementById('close-all-btn').addEventListener('click', closeAll);
+document.getElementById('dismiss-large-warning').addEventListener('click', () => {
+  dismissedLargeWarning.add(selectedListId);
+  document.getElementById('large-workspace-warning').classList.add('hidden');
+});
 document.getElementById('star-btn').addEventListener('click', toggleStar);
 document.getElementById('share-btn').addEventListener('click', shareList);
 

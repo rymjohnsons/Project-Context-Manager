@@ -258,5 +258,20 @@ button {
 .login-hint { font-size: 10px; color: #8EAAD8; text-align: center; line-height: 1.5; }
 .login-hint code { color: #1E3A8A; background: #C5D8F0; padding: 1px 4px; border-radius: 3px; }
 
+/* ── Large workspace warning ────────────────────────────────────────────── */
+.large-workspace-warning {
+  display: flex; align-items: center; gap: 0.5rem;
+  background: #EEF4FB; border: 1px solid #C5D8F0; border-radius: 5px;
+  padding: 0.35rem 0.6rem; font-size: 11px; color: #2D4FA0;
+  margin: 0.25rem 0; line-height: 1.4;
+}
+.large-workspace-warning span { flex: 1; }
+.dismiss-large-warning-btn {
+  background: transparent; border: none; color: #8EAAD8;
+  font-size: 13px; line-height: 1; padding: 0; cursor: pointer;
+  flex-shrink: 0; font-family: inherit;
+}
+.dismiss-large-warning-btn:hover { color: #1E3A8A; }
+
 /* ── Utility ────────────────────────────────────────────────────────────── */
 .hidden { display: none !important; }
