@@ -487,17 +487,12 @@
 
     <!-- Forgot password flow -->
     <div id="forgot-section" class="forgot-section hidden">
-      <div class="auth-form">
+      <div class="auth-form" id="forgot-form">
         <input type="email" id="forgot-email" placeholder="Your account email" autocomplete="email" />
-        <button id="forgot-submit" class="btn-primary" style="padding:0.65rem;">Get Reset Token</button>
+        <button id="forgot-submit" class="btn-primary" style="padding:0.65rem;">Send Reset Link</button>
       </div>
-      <div id="forgot-token-box" class="forgot-token-box hidden">
-        <p>Your reset token (valid 1 hour). Copy it, then use it below to set a new password.</p>
-        <div id="forgot-token-value" class="forgot-token-value"></div>
-        <div class="forgot-token-actions">
-          <button id="forgot-copy-btn" class="btn-secondary" style="font-size:0.74rem;padding:0.3rem 0.65rem;">Copy Token</button>
-          <button id="forgot-go-reset-btn" class="btn-primary"  style="font-size:0.74rem;padding:0.3rem 0.65rem;">Reset Password →</button>
-        </div>
+      <div id="forgot-success" class="forgot-token-box hidden">
+        <p>Check your inbox — if that email is registered, a reset link is on its way. The link expires in 1 hour.</p>
       </div>
       <p class="auth-back-row"><button class="auth-back-link" id="forgot-back-link">← Back to login</button></p>
     </div>
@@ -952,16 +947,15 @@ async function submitForgot() {
   const btn = document.getElementById('forgot-submit');
   btn.disabled = true; btn.textContent = 'Please wait…';
   try {
-    const { token } = await apiFetch('/users/forgot-password', {
+    await apiFetch('/users/forgot-password', {
       method: 'POST', body: JSON.stringify({ email }),
     });
-    document.getElementById('forgot-token-value').textContent = token;
-    document.getElementById('forgot-token-box').classList.remove('hidden');
-    document.getElementById('reset-token').value = token;
+    document.getElementById('forgot-form').classList.add('hidden');
+    document.getElementById('forgot-success').classList.remove('hidden');
   } catch (e) {
     setAuthError(e.message);
   } finally {
-    btn.disabled = false; btn.textContent = 'Get Reset Token';
+    btn.disabled = false; btn.textContent = 'Send Reset Link';
   }
 }
 
@@ -1462,16 +1456,15 @@ document.getElementById('auth-submit').addEventListener('click',  submitAuth);
 document.getElementById('logout-btn').addEventListener('click',   logout);
 
 document.getElementById('forgot-link').addEventListener('click', () => setAuthMode('forgot'));
-document.getElementById('forgot-back-link').addEventListener('click', () => setAuthMode('login'));
+document.getElementById('forgot-back-link').addEventListener('click', () => {
+  // Reset the forgot-password form to its initial state when navigating away
+  document.getElementById('forgot-form').classList.remove('hidden');
+  document.getElementById('forgot-success').classList.add('hidden');
+  document.getElementById('forgot-email').value = '';
+  setAuthMode('login');
+});
 document.getElementById('reset-back-link').addEventListener('click',  () => setAuthMode('login'));
 document.getElementById('forgot-submit').addEventListener('click', submitForgot);
-document.getElementById('forgot-copy-btn').addEventListener('click', () => {
-  const val = document.getElementById('forgot-token-value').textContent;
-  navigator.clipboard.writeText(val).catch(() => {});
-  document.getElementById('forgot-copy-btn').textContent = 'Copied!';
-  setTimeout(() => { document.getElementById('forgot-copy-btn').textContent = 'Copy Token'; }, 1800);
-});
-document.getElementById('forgot-go-reset-btn').addEventListener('click', () => setAuthMode('reset'));
 document.getElementById('reset-submit').addEventListener('click', submitReset);
 document.getElementById('forgot-email').addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('forgot-submit').click();
@@ -1602,6 +1595,17 @@ document.getElementById('template-modal').addEventListener('click', e => {
 // ── Boot ──────────────────────────────────────────────────────────────────────
 
 async function boot() {
+  // Handle reset-password links arriving from email (?reset_token=...)
+  const params     = new URLSearchParams(location.search);
+  const resetToken = params.get('reset_token');
+  if (resetToken) {
+    document.getElementById('reset-token').value = resetToken;
+    showAuthScreen();
+    setAuthMode('reset');
+    history.replaceState(null, '', location.pathname);
+    return;
+  }
+
   const token = getToken();
   if (!token) { showAuthScreen(); return; }
   try {

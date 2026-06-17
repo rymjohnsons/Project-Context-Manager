@@ -1,4 +1,8 @@
+import json
+import logging
+import os
 import secrets
+import urllib.request
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -10,7 +14,128 @@ import auth
 from database import get_db
 
 router = APIRouter(prefix="/users", tags=["users"])
+_log = logging.getLogger(__name__)
 
+# ── Password-reset email ───────────────────────────────────────────────────────
+
+_APP_URL = os.environ.get("APP_URL", "https://web-production-b9ae2.up.railway.app")
+
+_RESET_EMAIL_HTML = """\
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0;padding:0;background:#F4F1EA;
+             font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0"
+         style="background:#F4F1EA;padding:40px 20px;">
+    <tr><td align="center">
+      <table width="100%" style="max-width:480px;background:#FFFFFF;
+                                  border-radius:12px;border:1px solid #C5D8F0;
+                                  overflow:hidden;">
+        <!-- Header -->
+        <tr>
+          <td style="background:#1E3A8A;padding:24px 32px;">
+            <p style="margin:0;font-size:20px;font-weight:700;color:#FFFFFF;
+                      letter-spacing:-0.02em;">Tabrador</p>
+            <p style="margin:4px 0 0;font-size:11px;color:#8EAAD8;
+                      letter-spacing:0.08em;text-transform:uppercase;">Fetch your tabs</p>
+          </td>
+        </tr>
+        <!-- Body -->
+        <tr>
+          <td style="padding:32px;">
+            <h1 style="margin:0 0 12px;font-size:20px;font-weight:700;color:#0F1E4A;">
+              Reset your password
+            </h1>
+            <p style="margin:0 0 24px;font-size:14px;color:#2D4FA0;line-height:1.6;">
+              We received a request to reset the password for your Tabrador account.
+              Click the button below to choose a new password.
+              This link expires in&nbsp;1&nbsp;hour.
+            </p>
+            <!-- CTA button -->
+            <table cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+              <tr>
+                <td style="background:#1E3A8A;border-radius:8px;">
+                  <a href="RESET_LINK" target="_blank"
+                     style="display:inline-block;padding:14px 28px;font-size:14px;
+                            font-weight:600;color:#FFFFFF;text-decoration:none;
+                            letter-spacing:0.01em;">
+                    Reset my password &rarr;
+                  </a>
+                </td>
+              </tr>
+            </table>
+            <!-- Fallback link -->
+            <p style="margin:0 0 6px;font-size:12px;color:#8EAAD8;line-height:1.5;">
+              If the button doesn&rsquo;t work, paste this link into your browser:
+            </p>
+            <p style="margin:0 0 24px;font-size:11px;color:#2D4FA0;word-break:break-all;
+                       background:#F4F1EA;border-radius:6px;padding:10px 12px;">
+              RESET_LINK
+            </p>
+            <p style="margin:0;font-size:12px;color:#8EAAD8;line-height:1.5;">
+              If you didn&rsquo;t request a password reset, you can safely ignore this email.
+              Your password will not change.
+            </p>
+          </td>
+        </tr>
+        <!-- Footer -->
+        <tr>
+          <td style="padding:16px 32px;background:#F4F1EA;border-top:1px solid #C5D8F0;">
+            <p style="margin:0;font-size:11px;color:#8EAAD8;text-align:center;">
+              Tabrador &mdash; Fetch your tabs
+            </p>
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
+"""
+
+
+def _send_reset_email(to_email: str, token: str) -> None:
+    """Send a password-reset email via Resend. Logs errors, never raises."""
+    api_key = os.environ.get("RESEND_API_KEY")
+    if not api_key:
+        _log.warning("RESEND_API_KEY not set — skipping password-reset email to %s", to_email)
+        return
+
+    from_addr = os.environ.get("RESEND_FROM_EMAIL", "onboarding@resend.dev")
+    reset_link = f"{_APP_URL}/app?reset_token={token}"
+    html = _RESET_EMAIL_HTML.replace("RESET_LINK", reset_link)
+
+    payload = json.dumps({
+        "from": f"Tabrador <{from_addr}>",
+        "to": [to_email],
+        "subject": "Reset your Tabrador password",
+        "html": html,
+    }).encode()
+
+    req = urllib.request.Request(
+        "https://api.resend.com/emails",
+        data=payload,
+        headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+        },
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            if resp.status not in (200, 201):
+                body = resp.read(512).decode("utf-8", errors="ignore")
+                _log.error("Resend returned HTTP %s for %s: %s", resp.status, to_email, body)
+    except Exception as exc:
+        _log.error("Failed to send reset email to %s: %s", to_email, exc)
+
+
+# ── Routes ─────────────────────────────────────────────────────────────────────
 
 @router.post("/register", response_model=schemas.UserOut, status_code=201)
 def register(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
@@ -62,9 +187,9 @@ def save_onboarding(
 
 @router.post("/forgot-password", response_model=schemas.ForgotPasswordResponse)
 def forgot_password(req: schemas.ForgotPasswordRequest, db: Session = Depends(get_db)):
-    token_str = secrets.token_urlsafe(32)
     user = db.query(models.User).filter(models.User.email == req.email).first()
     if user:
+        token_str = secrets.token_urlsafe(32)
         # Expire any existing unused tokens for this user.
         db.query(models.PasswordResetToken).filter(
             models.PasswordResetToken.user_id == user.id,
@@ -73,8 +198,10 @@ def forgot_password(req: schemas.ForgotPasswordRequest, db: Session = Depends(ge
         db.commit()
         db.add(models.PasswordResetToken(user_id=user.id, token=token_str))
         db.commit()
-    # Always return a token string — callers cannot infer whether the email exists.
-    return {"token": token_str}
+        _send_reset_email(user.email, token_str)
+
+    # Always return the same message — never reveal whether the email is registered.
+    return {"message": "If that email is registered, a reset link has been sent. Check your inbox."}
 
 
 @router.post("/reset-password")

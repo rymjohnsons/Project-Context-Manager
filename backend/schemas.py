@@ -92,7 +92,7 @@ class ForgotPasswordRequest(BaseModel):
 
 
 class ForgotPasswordResponse(BaseModel):
-    token: str
+    message: str
 
 
 class ResetPasswordRequest(BaseModel):
