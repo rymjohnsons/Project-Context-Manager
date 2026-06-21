@@ -1,7 +1,7 @@
 'use strict';
 
 // ── Configuration ──────────────────────────────────────────────────────────────
-const API_BASE = 'https://web-production-b9ae2.up.railway.app';
+const API_BASE = 'https://tabrador.app';
 
 // chrome.storage.local keys
 const TOKEN_KEY       = 'projectContextManager_token';

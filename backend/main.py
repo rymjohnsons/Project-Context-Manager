@@ -5,7 +5,7 @@ import logging
 import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 
 import models
 from database import engine, DATABASE_URL
@@ -23,7 +23,13 @@ app = FastAPI(title="Tabrador API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://tabrador.app",
+        "https://www.tabrador.app",
+        "https://web-production-b9ae2.up.railway.app",  # keep old URL working
+        "http://localhost:8000",
+        "http://localhost:3000",
+    ],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -38,6 +44,8 @@ def serve_frontend():
     return FileResponse(os.path.abspath(html))
 
 
-@app.get("/", tags=["health"])
+@app.get("/", tags=["frontend"])
 def root():
-    return {"status": "ok", "message": "Open http://localhost:8000/app to use the app."}
+    # Serve the frontend directly so tabrador.app lands on the app, not a JSON message
+    html = os.path.join(os.path.dirname(__file__), '..', 'index.html')
+    return FileResponse(os.path.abspath(html))

@@ -18,7 +18,7 @@ _log = logging.getLogger(__name__)
 
 # ── Password-reset email ───────────────────────────────────────────────────────
 
-_APP_URL = os.environ.get("APP_URL", "https://web-production-b9ae2.up.railway.app")
+_APP_URL = os.environ.get("APP_URL", "https://tabrador.app")
 
 _RESET_EMAIL_HTML = """\
 <!DOCTYPE html>
