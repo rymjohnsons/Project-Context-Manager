@@ -463,6 +463,68 @@
       flex-shrink: 0; font-family: inherit;
     }
     .large-workspace-warning-dismiss:hover { color: #1E3A8A; }
+
+    /* ── Dashboard ── */
+    .dashboard {
+      flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden;
+      padding: 2rem 2.5rem;
+    }
+    .dashboard.hidden { display: none; }
+
+    .dash-hero {
+      background: linear-gradient(135deg, #1E3A8A 0%, #2D4FA0 100%);
+      border-radius: 14px; padding: 2.5rem 2rem; margin-bottom: 2rem;
+      text-align: center;
+    }
+    .dash-hero-stat {
+      font-size: 2.75rem; font-weight: 800; color: #FFFFFF;
+      letter-spacing: -0.03em; line-height: 1;
+    }
+    .dash-hero-label {
+      font-size: 0.8rem; color: #C5D8F0; margin-top: 0.65rem; font-weight: 600;
+      text-transform: uppercase; letter-spacing: 0.06em;
+    }
+    .dash-hero-sub { font-size: 0.72rem; color: #8EAAD8; margin-top: 0.3rem; }
+
+    .dash-section-label {
+      font-size: 0.63rem; font-weight: 600; color: #8EAAD8;
+      letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 0.65rem;
+    }
+    .dash-recent-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+      gap: 0.65rem; margin-bottom: 2rem;
+    }
+    .dash-recent-card {
+      background: #FFFFFF; border: 1px solid #C5D8F0; border-radius: 10px;
+      padding: 0.9rem 1rem; cursor: pointer;
+      transition: border-color 0.12s, box-shadow 0.12s;
+    }
+    .dash-recent-card:hover {
+      border-color: #1E3A8A; box-shadow: 0 2px 8px rgba(30,58,138,0.08);
+    }
+    .dash-recent-name {
+      font-size: 0.83rem; font-weight: 600; color: #0F1E4A;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+      margin-bottom: 0.3rem;
+    }
+    .dash-recent-meta { font-size: 0.71rem; color: #8EAAD8; }
+    .dash-empty-hint {
+      font-size: 0.8rem; color: #8EAAD8; font-style: italic;
+      padding: 0.5rem 0; margin-bottom: 2rem;
+    }
+
+    .dash-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
+    .dash-tile {
+      background: #FFFFFF; border: 1px solid #C5D8F0; border-radius: 10px;
+      padding: 1.25rem 1rem; text-align: center; cursor: pointer;
+      transition: border-color 0.12s, background 0.12s; font-family: inherit;
+    }
+    .dash-tile:hover { border-color: #1E3A8A; background: #EEF4FB; }
+    .dash-tile-num { font-size: 1.85rem; font-weight: 700; color: #1E3A8A; line-height: 1; }
+    .dash-tile-label { font-size: 0.71rem; color: #8EAAD8; margin-top: 0.4rem; }
+
+    /* sidebar home button */
+    .sidebar-home-btn { flex-shrink: 0; border-bottom: 1px solid #2D4FA0; }
   </style>
 </head>
 <body>
@@ -539,6 +601,11 @@
       <div class="brand-sub">FETCH YOUR TABS</div>
     </div>
 
+    <!-- Dashboard home link — always visible, above the scroll area -->
+    <div id="sidebar-home" class="nav-item sidebar-home-btn">
+      <span class="nav-item-name">⌂ Dashboard</span>
+    </div>
+
     <div class="sidebar-scroll">
 
       <div class="nav-section">
@@ -604,12 +671,41 @@
       </div>
     </div>
 
-    <div id="welcome-state" class="welcome-state">
+    <div id="welcome-state" class="welcome-state hidden">
       <div class="welcome-inner">
         <!-- TERMINOLOGY: welcome state updated to workspace framing -->
         <div class="welcome-icon">📋</div>
         <h2>Select a workspace from the sidebar</h2>
         <p>Or click + next to My Workspaces to create a new one.</p>
+      </div>
+    </div>
+
+    <!-- DASHBOARD: landing page shown after login -->
+    <div id="dashboard" class="dashboard">
+      <div class="dash-hero">
+        <div class="dash-hero-stat" id="dash-time-saved">—</div>
+        <div class="dash-hero-label">Time saved opening tabs</div>
+        <div class="dash-hero-sub">vs. opening each tab manually</div>
+      </div>
+
+      <div class="dash-section-label">Recently Used</div>
+      <div id="dash-recent" class="dash-recent-grid">
+        <p class="dash-empty-hint">Open a workspace with Start Working to see it here.</p>
+      </div>
+
+      <div class="dash-metrics">
+        <button class="dash-tile" id="dash-tile-shared-by">
+          <div class="dash-tile-num" id="dash-num-shared-by">—</div>
+          <div class="dash-tile-label">Shared by me</div>
+        </button>
+        <button class="dash-tile" id="dash-tile-shared-with">
+          <div class="dash-tile-num" id="dash-num-shared-with">—</div>
+          <div class="dash-tile-label">Shared with me</div>
+        </button>
+        <button class="dash-tile" id="dash-tile-total">
+          <div class="dash-tile-num" id="dash-num-total">—</div>
+          <div class="dash-tile-label">My workspaces</div>
+        </button>
       </div>
     </div>
 
@@ -821,6 +917,7 @@ async function submitAuth() {
     } else {
       showApp(user.email);
       await render();
+      showDashboard();
       checkShareLink();
     }
   } catch (e) {
@@ -859,6 +956,7 @@ async function completeOnboarding(workType) {
   const email = document.getElementById('user-email').textContent;
   showApp(email);
   await render();
+  showDashboard();
   checkShareLink();
 }
 
@@ -987,6 +1085,7 @@ async function submitReset() {
 
 let currentLists   = [];
 let selectedListId = null;
+let currentView    = 'dashboard'; // 'dashboard' | 'workspace'
 const trackedWindows        = {};
 const openedLists           = new Set();
 const dismissedLargeWarning = new Set();
@@ -1065,6 +1164,60 @@ async function toggleStar() {
   } catch (e) {
     showErrorToast(e.message);
   }
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+
+function formatTimeSaved(totalSeconds) {
+  if (!totalSeconds) return '0 minutes';
+  if (totalSeconds < 60) return `${totalSeconds} second${totalSeconds !== 1 ? 's' : ''}`;
+  const hours   = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  if (hours > 0 && minutes > 0)
+    return `${hours} hour${hours !== 1 ? 's' : ''} ${minutes} minute${minutes !== 1 ? 's' : ''}`;
+  if (hours > 0) return `${hours} hour${hours !== 1 ? 's' : ''}`;
+  return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+}
+
+async function loadDashboard() {
+  try {
+    const data = await apiFetch('/users/dashboard');
+
+    document.getElementById('dash-time-saved').textContent = formatTimeSaved(data.time_saved_seconds);
+    document.getElementById('dash-num-shared-by').textContent   = data.shared_by_me;
+    document.getElementById('dash-num-shared-with').textContent = data.shared_with_me;
+    document.getElementById('dash-num-total').textContent       = data.total_workspaces;
+
+    const recentEl = document.getElementById('dash-recent');
+    recentEl.innerHTML = '';
+    if (data.recent_workspaces.length === 0) {
+      recentEl.innerHTML = '<p class="dash-empty-hint">Open a workspace with Start Working to see it here.</p>';
+    } else {
+      data.recent_workspaces.forEach(ws => {
+        const card = document.createElement('div');
+        card.className = 'dash-recent-card';
+        card.innerHTML = `
+          <div class="dash-recent-name">${esc(ws.name)}</div>
+          <div class="dash-recent-meta">
+            ${ws.url_count} resource${ws.url_count !== 1 ? 's' : ''}${ws.last_opened ? ' · ' + formatDate(ws.last_opened) : ''}
+          </div>`;
+        card.addEventListener('click', () => selectList(ws.id));
+        recentEl.appendChild(card);
+      });
+    }
+  } catch { /* dashboard load failures are silent */ }
+}
+
+function showDashboard() {
+  currentView    = 'dashboard';
+  selectedListId = null;
+  document.getElementById('dashboard').classList.remove('hidden');
+  document.getElementById('welcome-state').classList.add('hidden');
+  document.getElementById('list-detail').classList.add('hidden');
+  // Highlight home link, clear any active workspace item
+  document.querySelectorAll('.nav-item--active').forEach(el => el.classList.remove('nav-item--active'));
+  document.getElementById('sidebar-home').classList.add('nav-item--active');
+  loadDashboard();
 }
 
 // ── Start Working / Wrap Up (was Open All / Close All) ───────────────────────
@@ -1342,6 +1495,16 @@ function renderSidebar() {
 function renderDetail() {
   const welcomeEl = document.getElementById('welcome-state');
   const detailEl  = document.getElementById('list-detail');
+  const dashEl    = document.getElementById('dashboard');
+
+  if (currentView === 'dashboard') {
+    dashEl.classList.remove('hidden');
+    welcomeEl.classList.add('hidden');
+    detailEl.classList.add('hidden');
+    return;
+  }
+
+  dashEl.classList.add('hidden');
 
   if (!selectedListId) {
     welcomeEl.classList.remove('hidden');
@@ -1434,6 +1597,8 @@ function renderDetail() {
 
 function selectList(id) {
   selectedListId = id;
+  currentView    = 'workspace';
+  document.getElementById('dashboard').classList.add('hidden');
   renderSidebar();
   renderDetail();
 }
@@ -1583,6 +1748,17 @@ document.querySelectorAll('.onboarding-option').forEach(btn => {
 });
 document.getElementById('onboarding-skip').addEventListener('click', () => completeOnboarding(null));
 
+// DASHBOARD: sidebar home link + metric tiles
+document.getElementById('sidebar-home').addEventListener('click', showDashboard);
+document.getElementById('dash-tile-shared-by').addEventListener('click', () => { /* coming soon */ });
+document.getElementById('dash-tile-shared-with').addEventListener('click', () => {
+  // Navigate to Team Workspaces section — visible in sidebar, no dedicated route yet
+});
+document.getElementById('dash-tile-total').addEventListener('click', () => {
+  // Navigate to first workspace (highlights My Workspaces in sidebar)
+  if (currentLists.length > 0) selectList(currentLists[0].id);
+});
+
 // TEMPLATE: template picker
 document.getElementById('template-btn').addEventListener('click', openTemplateModal);
 document.getElementById('template-cancel').addEventListener('click', closeTemplateModal);
@@ -1612,6 +1788,7 @@ async function boot() {
     const user = await apiFetch('/users/me');
     showApp(user.email);
     await render();
+    showDashboard();
     checkShareLink();
   } catch {
     showAuthScreen();

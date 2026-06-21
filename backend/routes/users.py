@@ -185,6 +185,51 @@ def save_onboarding(
     return current_user
 
 
+@router.get("/dashboard", response_model=schemas.DashboardOut)
+def get_dashboard(
+    db:           Session     = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    tabs_opened        = current_user.tabs_opened or 0
+    time_saved_seconds = tabs_opened * 40
+
+    recent = (
+        db.query(models.List)
+        .filter(
+            models.List.owner_id   == current_user.id,
+            models.List.last_opened.isnot(None),
+        )
+        .order_by(models.List.last_opened.desc())
+        .limit(5)
+        .all()
+    )
+
+    total_workspaces = (
+        db.query(models.List)
+        .filter(models.List.owner_id == current_user.id)
+        .count()
+    )
+
+    recent_workspaces = [
+        schemas.RecentWorkspace(
+            id=lst.id,
+            name=lst.name,
+            url_count=len(lst.urls),
+            last_opened=lst.last_opened,
+        )
+        for lst in recent
+    ]
+
+    return schemas.DashboardOut(
+        tabs_opened=tabs_opened,
+        time_saved_seconds=time_saved_seconds,
+        recent_workspaces=recent_workspaces,
+        total_workspaces=total_workspaces,
+        shared_by_me=0,    # sharing is link-based with no server tracking yet
+        shared_with_me=0,
+    )
+
+
 @router.post("/forgot-password", response_model=schemas.ForgotPasswordResponse)
 def forgot_password(req: schemas.ForgotPasswordRequest, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.email == req.email).first()

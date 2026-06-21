@@ -18,6 +18,8 @@ class User(Base):
     created_at      = Column(DateTime(timezone=True), default=utcnow)
     # ONBOARDING: work role collected after first signup — used for personalisation
     work_type       = Column(String, nullable=True)
+    # DASHBOARD: cumulative count of tabs opened via Start Working
+    tabs_opened     = Column(Integer, default=0, nullable=False)
 
     lists = relationship("List", back_populates="owner", cascade="all, delete-orphan")
 
@@ -25,11 +27,13 @@ class User(Base):
 class List(Base):
     __tablename__ = "lists"
 
-    id         = Column(Integer, primary_key=True, index=True)
-    name       = Column(String, nullable=False)
-    starred    = Column(Boolean, default=False, nullable=False)
-    owner_id   = Column(Integer, ForeignKey("users.id"), nullable=False)
-    created_at = Column(DateTime(timezone=True), default=utcnow)
+    id          = Column(Integer, primary_key=True, index=True)
+    name        = Column(String, nullable=False)
+    starred     = Column(Boolean, default=False, nullable=False)
+    owner_id    = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at  = Column(DateTime(timezone=True), default=utcnow)
+    # DASHBOARD: updated whenever any resource in this list is opened via Start Working
+    last_opened = Column(DateTime(timezone=True), nullable=True)
 
     owner = relationship("User", back_populates="lists")
     urls  = relationship("Url", back_populates="list", cascade="all, delete-orphan")

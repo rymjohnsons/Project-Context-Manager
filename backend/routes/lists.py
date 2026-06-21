@@ -216,14 +216,17 @@ def mark_url_opened(
     db:           Session     = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ):
-    get_list_or_404(list_id, current_user, db)
+    lst = get_list_or_404(list_id, current_user, db)
     url = db.query(models.Url).filter(
         models.Url.id      == url_id,
         models.Url.list_id == list_id,
     ).first()
     if url is None:
         raise HTTPException(status_code=404, detail="URL not found in this list.")
-    url.last_opened = utcnow()
+    now = utcnow()
+    url.last_opened          = now
+    lst.last_opened          = now           # DASHBOARD: track workspace activity
+    current_user.tabs_opened = (current_user.tabs_opened or 0) + 1  # DASHBOARD: time-saved metric
     db.commit()
     db.refresh(url)
     return url

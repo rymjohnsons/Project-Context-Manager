@@ -85,6 +85,24 @@ class TokenData(BaseModel):
     user_id: int | None = None
 
 
+# ── Dashboard schemas ──────────────────────────────────────────────────────────
+
+class RecentWorkspace(BaseModel):
+    id:          int
+    name:        str
+    url_count:   int
+    last_opened: datetime | None = None
+
+
+class DashboardOut(BaseModel):
+    tabs_opened:        int
+    time_saved_seconds: int
+    recent_workspaces:  list[RecentWorkspace]
+    total_workspaces:   int
+    shared_by_me:       int
+    shared_with_me:     int
+
+
 # ── Password reset schemas ─────────────────────────────────────────────────────
 
 class ForgotPasswordRequest(BaseModel):
