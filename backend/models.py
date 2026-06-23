@@ -72,6 +72,8 @@ class WorkspaceShare(Base):
     # pending  = email stored, no Tabrador account yet
     # claimed  = recipient has an account and can see the workspace
     status          = Column(String, default="pending", nullable=False)
+    # view = read-only access; edit = can add/remove/modify resources
+    permission      = Column(String, default="edit", nullable=False)
     created_at      = Column(DateTime(timezone=True), default=utcnow)
     claimed_at      = Column(DateTime(timezone=True), nullable=True)
 

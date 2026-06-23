@@ -234,13 +234,31 @@ def get_dashboard(
         for lst in recent
     ]
 
+    shared_by_me = (
+        db.query(models.WorkspaceShare)
+        .filter(
+            models.WorkspaceShare.shared_by_id == current_user.id,
+            models.WorkspaceShare.status       == "claimed",
+        )
+        .count()
+    )
+
+    shared_with_me = (
+        db.query(models.WorkspaceShare)
+        .filter(
+            models.WorkspaceShare.recipient_id == current_user.id,
+            models.WorkspaceShare.status       == "claimed",
+        )
+        .count()
+    )
+
     return schemas.DashboardOut(
         tabs_opened=tabs_opened,
         time_saved_seconds=time_saved_seconds,
         recent_workspaces=recent_workspaces,
         total_workspaces=total_workspaces,
-        shared_by_me=0,    # sharing is link-based with no server tracking yet
-        shared_with_me=0,
+        shared_by_me=shared_by_me,
+        shared_with_me=shared_with_me,
     )
 
 

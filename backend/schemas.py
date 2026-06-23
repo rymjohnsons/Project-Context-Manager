@@ -88,13 +88,19 @@ class TokenData(BaseModel):
 # ── Workspace share schemas ────────────────────────────────────────────────────
 
 class WorkspaceShareCreate(BaseModel):
-    email: str
+    email:      str
+    permission: str = "edit"   # 'edit' | 'view'
+
+
+class WorkspaceSharePermissionUpdate(BaseModel):
+    permission: str            # 'edit' | 'view'
 
 
 class WorkspaceShareOut(BaseModel):
     id:              int
     recipient_email: str
-    status:          str      # 'pending' | 'claimed'
+    status:          str       # 'pending' | 'claimed'
+    permission:      str       # 'edit' | 'view'
     created_at:      datetime
 
     model_config = {"from_attributes": True}

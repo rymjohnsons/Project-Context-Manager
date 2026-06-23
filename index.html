@@ -547,6 +547,13 @@
     }
     .invite-badge--pending { background: #FEF3C7; color: #92400E; }
     .invite-badge--claimed { background: #D1FAE5; color: #065F46; }
+    .invite-perm-select, .share-perm-select {
+      font-size: 0.72rem; color: #2D4FA0; background: #FFFFFF;
+      border: 1px solid #C5D8F0; border-radius: 4px;
+      padding: 0.18rem 0.35rem; cursor: pointer; font-family: inherit; flex-shrink: 0;
+    }
+    .invite-perm-select { min-width: 88px; }
+    .share-perm-select  { min-width: 88px; }
   </style>
 </head>
 <body>
@@ -754,6 +761,10 @@
       <div id="invite-panel" class="invite-panel hidden">
         <div class="invite-form-row">
           <input type="email" id="invite-email" placeholder="Colleague's email address…" autocomplete="off" />
+          <select id="invite-permission" class="invite-perm-select" title="Access level">
+            <option value="edit">Can edit</option>
+            <option value="view">View only</option>
+          </select>
           <button id="invite-submit-btn" class="btn-primary" style="font-size:0.8rem;padding:0.4rem 0.85rem;white-space:nowrap;">Invite</button>
           <button id="invite-close-btn" class="btn-danger-outline" style="font-size:0.8rem;padding:0.4rem 0.65rem;" title="Close">✕</button>
         </div>
@@ -1219,13 +1230,28 @@ function renderSharesList() {
   currentShares.forEach(share => {
     const row = document.createElement('div');
     row.className = 'invite-share-row';
-    const cls  = share.status === 'pending' ? 'invite-badge--pending' : 'invite-badge--claimed';
-    const text = share.status === 'pending' ? 'Pending' : 'Accepted';
+    const statusCls  = share.status === 'pending' ? 'invite-badge--pending' : 'invite-badge--claimed';
+    const statusText = share.status === 'pending' ? 'Pending' : 'Active';
     row.innerHTML = `
       <span class="invite-share-email">${esc(share.recipient_email)}</span>
-      <span class="invite-badge ${cls}">${text}</span>`;
+      <select class="share-perm-select" data-share-id="${share.id}" title="Permission">
+        <option value="edit" ${share.permission === 'edit' ? 'selected' : ''}>Can edit</option>
+        <option value="view" ${share.permission === 'view' ? 'selected' : ''}>View only</option>
+      </select>
+      <span class="invite-badge ${statusCls}">${statusText}</span>`;
     el.appendChild(row);
   });
+}
+
+async function updateSharePermission(shareId, permission) {
+  if (!selectedListId) return;
+  try {
+    const updated = await apiFetch(`/lists/${selectedListId}/shares/${shareId}`, {
+      method: 'PATCH', body: JSON.stringify({ permission }),
+    });
+    const idx = currentShares.findIndex(s => s.id === shareId);
+    if (idx !== -1) currentShares[idx] = updated;
+  } catch (e) { showErrorToast(e.message); renderSharesList(); } // revert on error
 }
 
 async function loadShares(listId) {
@@ -1236,13 +1262,14 @@ async function loadShares(listId) {
 }
 
 async function submitInvite() {
-  const email = document.getElementById('invite-email').value.trim();
+  const email      = document.getElementById('invite-email').value.trim();
+  const permission = document.getElementById('invite-permission').value;
   if (!email || !selectedListId) return;
   const btn = document.getElementById('invite-submit-btn');
   btn.disabled = true; btn.textContent = 'Inviting…';
   try {
     const share = await apiFetch(`/lists/${selectedListId}/share`, {
-      method: 'POST', body: JSON.stringify({ email }),
+      method: 'POST', body: JSON.stringify({ email, permission }),
     });
     document.getElementById('invite-email').value = '';
     currentShares = [...currentShares, share];
@@ -1804,6 +1831,10 @@ document.getElementById('invite-submit-btn').addEventListener('click', submitInv
 document.getElementById('invite-email').addEventListener('keydown', e => {
   if (e.key === 'Enter') submitInvite();
   if (e.key === 'Escape') closeInvitePanel();
+});
+document.getElementById('invite-shares-list').addEventListener('change', e => {
+  const sel = e.target.closest('.share-perm-select');
+  if (sel) updateSharePermission(parseInt(sel.dataset.shareId), sel.value);
 });
 
 document.getElementById('delete-list-btn').addEventListener('click', async () => {

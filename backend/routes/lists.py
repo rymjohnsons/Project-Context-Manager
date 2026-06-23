@@ -15,8 +15,14 @@ from models import utcnow
 router = APIRouter(prefix="/lists", tags=["lists"])
 
 
-def get_list_or_404(list_id: int, user: models.User, db: Session) -> models.List:
-    """Return the workspace if the user is the owner OR has a claimed share."""
+def get_list_or_404(
+    list_id:      int,
+    user:         models.User,
+    db:           Session,
+    require_edit: bool = False,   # True → view-only recipients are rejected
+) -> models.List:
+    """Return the workspace if the user is the owner OR has a claimed share.
+    Pass require_edit=True for write operations to enforce the view/edit tier."""
     lst = db.query(models.List).filter(models.List.id == list_id).first()
     if lst is None:
         raise HTTPException(status_code=404, detail="Workspace not found.")
@@ -28,6 +34,11 @@ def get_list_or_404(list_id: int, user: models.User, db: Session) -> models.List
         ).first()
         if not share:
             raise HTTPException(status_code=403, detail="You don't have access to this workspace.")
+        if require_edit and share.permission == "view":
+            raise HTTPException(
+                status_code=403,
+                detail="You have view-only access to this workspace.",
+            )
     return lst
 
 
@@ -121,6 +132,9 @@ def share_workspace(
         func.lower(models.User.email) == recipient_email
     ).first()
 
+    if share_in.permission not in ("view", "edit"):
+        raise HTTPException(status_code=400, detail="Permission must be 'view' or 'edit'.")
+
     now = datetime.now(timezone.utc)
     share = models.WorkspaceShare(
         workspace_id    = list_id,
@@ -128,9 +142,40 @@ def share_workspace(
         recipient_email = recipient_email,
         recipient_id    = recipient.id if recipient else None,
         status          = "claimed"  if recipient else "pending",
+        permission      = share_in.permission,
         claimed_at      = now        if recipient else None,
     )
     db.add(share)
+    db.commit()
+    db.refresh(share)
+    return share
+
+
+@router.patch("/{list_id}/shares/{share_id}", response_model=schemas.WorkspaceShareOut)
+def update_share_permission(
+    list_id:  int,
+    share_id: int,
+    update:   schemas.WorkspaceSharePermissionUpdate,
+    db:       Session     = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    """Change the view/edit permission on an existing share (owner only)."""
+    lst = db.query(models.List).filter(models.List.id == list_id).first()
+    if lst is None:
+        raise HTTPException(status_code=404, detail="Workspace not found.")
+    if lst.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the workspace owner can change share permissions.")
+    if update.permission not in ("view", "edit"):
+        raise HTTPException(status_code=400, detail="Permission must be 'view' or 'edit'.")
+
+    share = db.query(models.WorkspaceShare).filter(
+        models.WorkspaceShare.id           == share_id,
+        models.WorkspaceShare.workspace_id == list_id,
+    ).first()
+    if not share:
+        raise HTTPException(status_code=404, detail="Share not found.")
+
+    share.permission = update.permission
     db.commit()
     db.refresh(share)
     return share
@@ -199,7 +244,7 @@ def update_list(
     db:           Session     = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ):
-    lst = get_list_or_404(list_id, current_user, db)
+    lst = get_list_or_404(list_id, current_user, db, require_edit=True)
     lst.name = list_in.name.strip()
     db.commit()
     db.refresh(lst)
@@ -213,7 +258,12 @@ def star_list(
     db:           Session     = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ):
-    lst = get_list_or_404(list_id, current_user, db)
+    # Starring is owner-only — the starred flag is workspace-global, not per-user
+    lst = db.query(models.List).filter(models.List.id == list_id).first()
+    if lst is None:
+        raise HTTPException(status_code=404, detail="Workspace not found.")
+    if lst.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the workspace owner can star it.")
     lst.starred = star_in.starred
     db.commit()
     db.refresh(lst)
@@ -226,7 +276,12 @@ def delete_list(
     db:           Session     = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ):
-    lst = get_list_or_404(list_id, current_user, db)
+    # Delete is owner-only — recipients cannot destroy a workspace they don't own
+    lst = db.query(models.List).filter(models.List.id == list_id).first()
+    if lst is None:
+        raise HTTPException(status_code=404, detail="Workspace not found.")
+    if lst.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the workspace owner can delete it.")
     db.delete(lst)
     db.commit()
 
@@ -241,7 +296,7 @@ def add_url(
     db:              Session     = Depends(get_db),
     current_user:    models.User = Depends(auth.get_current_user),
 ):
-    get_list_or_404(list_id, current_user, db)
+    get_list_or_404(list_id, current_user, db, require_edit=True)
     url = models.Url(url=url_in.url, list_id=list_id, added_by_id=current_user.id)
     db.add(url)
     db.commit()
@@ -257,7 +312,7 @@ def remove_url(
     db:           Session     = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ):
-    get_list_or_404(list_id, current_user, db)
+    get_list_or_404(list_id, current_user, db, require_edit=True)
     url = db.query(models.Url).filter(
         models.Url.id      == url_id,
         models.Url.list_id == list_id,
@@ -277,7 +332,7 @@ def star_url(
     db:           Session     = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ):
-    get_list_or_404(list_id, current_user, db)
+    get_list_or_404(list_id, current_user, db, require_edit=True)
     url = db.query(models.Url).filter(
         models.Url.id      == url_id,
         models.Url.list_id == list_id,
@@ -298,7 +353,7 @@ def update_url_notes(
     db:           Session     = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ):
-    get_list_or_404(list_id, current_user, db)
+    get_list_or_404(list_id, current_user, db, require_edit=True)
     url = db.query(models.Url).filter(
         models.Url.id      == url_id,
         models.Url.list_id == list_id,
