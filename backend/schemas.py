@@ -115,6 +115,13 @@ class SharedWorkspaceOut(BaseModel):
     shared_by_email: str
 
 
+class SharedOutWorkspace(BaseModel):
+    """A workspace the current user has shared — with nested recipient list."""
+    id:     int
+    name:   str
+    shares: list[WorkspaceShareOut]
+
+
 # ── Dashboard schemas ──────────────────────────────────────────────────────────
 
 class RecentWorkspace(BaseModel):

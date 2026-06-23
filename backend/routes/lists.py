@@ -74,6 +74,33 @@ def _bg_store_title(url_id: int, url_str: str):
 
 # ── Workspace sharing ──────────────────────────────────────────────────────────
 
+@router.get("/shared-out", response_model=list[schemas.SharedOutWorkspace])
+def get_shared_out(
+    db:           Session     = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    """All workspaces the current user has shared, grouped by workspace."""
+    shares = (
+        db.query(models.WorkspaceShare)
+        .filter(models.WorkspaceShare.shared_by_id == current_user.id)
+        .order_by(models.WorkspaceShare.workspace_id, models.WorkspaceShare.created_at)
+        .all()
+    )
+    ws_map: dict[int, dict] = {}
+    for share in shares:
+        if share.workspace is None:
+            continue
+        ws_id = share.workspace_id
+        if ws_id not in ws_map:
+            ws_map[ws_id] = {"id": ws_id, "name": share.workspace.name, "shares": []}
+        ws_map[ws_id]["shares"].append(share)
+    return [
+        schemas.SharedOutWorkspace(id=d["id"], name=d["name"], shares=d["shares"])
+        for d in ws_map.values()
+        if d["shares"]
+    ]
+
+
 @router.get("/shared-with-me", response_model=list[schemas.SharedWorkspaceOut])
 def get_shared_workspaces(
     db:           Session     = Depends(get_db),
@@ -149,6 +176,29 @@ def share_workspace(
     db.commit()
     db.refresh(share)
     return share
+
+
+@router.delete("/{list_id}/shares/{share_id}", status_code=204)
+def revoke_share(
+    list_id:  int,
+    share_id: int,
+    db:       Session     = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    """Remove a share entirely — owner only. Works on pending and active shares."""
+    lst = db.query(models.List).filter(models.List.id == list_id).first()
+    if lst is None:
+        raise HTTPException(status_code=404, detail="Workspace not found.")
+    if lst.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the workspace owner can revoke shares.")
+    share = db.query(models.WorkspaceShare).filter(
+        models.WorkspaceShare.id           == share_id,
+        models.WorkspaceShare.workspace_id == list_id,
+    ).first()
+    if not share:
+        raise HTTPException(status_code=404, detail="Share not found.")
+    db.delete(share)
+    db.commit()
 
 
 @router.patch("/{list_id}/shares/{share_id}", response_model=schemas.WorkspaceShareOut)

@@ -547,6 +547,55 @@
     }
     .invite-badge--pending { background: #FEF3C7; color: #92400E; }
     .invite-badge--claimed { background: #D1FAE5; color: #065F46; }
+    /* ── Shared Out view ── */
+    .shared-out-view {
+      flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 2rem 2.5rem;
+    }
+    .shared-out-view.hidden { display: none; }
+    .shared-out-header { margin-bottom: 1.5rem; }
+    .shared-out-title { font-size: 1.4rem; font-weight: 700; color: #0F1E4A; margin-bottom: 0.25rem; }
+    .shared-out-sub { font-size: 0.8rem; color: #8EAAD8; }
+    .shared-out-list { display: flex; flex-direction: column; gap: 1rem; }
+    .shared-out-card {
+      background: #FFFFFF; border: 1px solid #C5D8F0; border-radius: 10px; overflow: hidden;
+    }
+    .shared-out-card-header {
+      display: flex; align-items: center; gap: 0.75rem;
+      padding: 0.75rem 1rem; background: #F4F1EA; border-bottom: 1px solid #C5D8F0;
+    }
+    .shared-out-ws-name {
+      flex: 1; font-size: 0.88rem; font-weight: 600; color: #1E3A8A; cursor: pointer;
+    }
+    .shared-out-ws-name:hover { text-decoration: underline; }
+    .shared-out-ws-count { font-size: 0.71rem; color: #8EAAD8; flex-shrink: 0; }
+    .shared-out-recipient-row {
+      display: flex; align-items: center; gap: 0.65rem; padding: 0.5rem 1rem;
+      border-bottom: 1px solid #F4F1EA;
+    }
+    .shared-out-recipient-row:last-child { border-bottom: none; }
+    .shared-out-email {
+      flex: 1; font-size: 0.8rem; color: #0F1E4A;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .shared-out-badge {
+      font-size: 0.66rem; font-weight: 600; padding: 0.15rem 0.5rem;
+      border-radius: 10px; flex-shrink: 0;
+    }
+    .shared-out-badge--pending { background: #FEF3C7; color: #92400E; }
+    .shared-out-badge--active  { background: #D1FAE5; color: #065F46; }
+    .btn-revoke {
+      background: transparent; border: none; color: #C5D8F0; font-size: 0.72rem;
+      cursor: pointer; padding: 0.2rem 0.45rem; border-radius: 4px; font-family: inherit;
+      transition: color 0.1s, background 0.1s; flex-shrink: 0; white-space: nowrap;
+    }
+    .btn-revoke:hover { color: #dc2626; background: #fee2e2; }
+    .shared-out-perm-select {
+      font-size: 0.72rem; color: #2D4FA0; background: #FFFFFF;
+      border: 1px solid #C5D8F0; border-radius: 4px;
+      padding: 0.18rem 0.35rem; cursor: pointer; font-family: inherit; flex-shrink: 0;
+      min-width: 88px;
+    }
+
     .invite-perm-select, .share-perm-select {
       font-size: 0.72rem; color: #2D4FA0; background: #FFFFFF;
       border: 1px solid #C5D8F0; border-radius: 4px;
@@ -665,6 +714,11 @@
         <div id="sidebar-team-workspaces"></div>
       </div>
 
+      <!-- SHARING: Shared Out link — navigates to the Shared Out management view -->
+      <div id="sidebar-shared-out" class="nav-item">
+        <span class="nav-item-name">↗ Shared by me</span>
+      </div>
+
       <div class="nav-section">
         <div class="nav-section-header">
           <span class="nav-section-label">Starred</span>
@@ -737,6 +791,15 @@
           <div class="dash-tile-label">My workspaces</div>
         </button>
       </div>
+    </div>
+
+    <!-- SHARING: Shared Out management view -->
+    <div id="shared-out-view" class="shared-out-view hidden">
+      <div class="shared-out-header">
+        <div class="shared-out-title">Shared by me</div>
+        <div class="shared-out-sub">Workspaces you've shared with others — manage access below</div>
+      </div>
+      <div id="shared-out-list" class="shared-out-list"></div>
     </div>
 
     <div id="list-detail" class="list-detail hidden">
@@ -1135,6 +1198,7 @@ let selectedListId    = null;
 let currentView       = 'dashboard'; // 'dashboard' | 'workspace'
 let sharedWorkspaces  = []; // workspaces shared with current user (summary from /shared-with-me)
 let sharedListDetails = []; // full List data for shared workspaces (fetched on click)
+let sharedOutData     = []; // workspaces I've shared with others (for Shared Out view)
 let currentShares     = []; // shares for the currently selected workspace (owner view)
 const trackedWindows        = {};
 const openedLists           = new Set();
@@ -1292,6 +1356,61 @@ function closeInvitePanel() {
   document.getElementById('invite-shares-list').innerHTML = '';
 }
 
+// ── Shared Out view ──────────────────────────────────────────────────────────
+
+function showSharedOut() {
+  currentView    = 'shared-out';
+  selectedListId = null;
+  document.getElementById('shared-out-view').classList.remove('hidden');
+  document.getElementById('dashboard').classList.add('hidden');
+  document.getElementById('welcome-state').classList.add('hidden');
+  document.getElementById('list-detail').classList.add('hidden');
+  document.querySelectorAll('.nav-item--active').forEach(el => el.classList.remove('nav-item--active'));
+  document.getElementById('sidebar-shared-out').classList.add('nav-item--active');
+  loadSharedOut();
+}
+
+async function loadSharedOut() {
+  try {
+    sharedOutData = await apiFetch('/lists/shared-out');
+  } catch { sharedOutData = []; }
+  renderSharedOut();
+}
+
+function renderSharedOut() {
+  const container = document.getElementById('shared-out-list');
+  container.innerHTML = '';
+  if (sharedOutData.length === 0) {
+    container.innerHTML = '<p class="dash-empty-hint">You haven\'t shared any workspaces yet. Use the Invite button on any workspace to share it.</p>';
+    return;
+  }
+  sharedOutData.forEach(ws => {
+    const card = document.createElement('div');
+    card.className = 'shared-out-card';
+    const rows = ws.shares.map(share => {
+      const statusCls = share.status === 'pending' ? 'shared-out-badge--pending' : 'shared-out-badge--active';
+      const statusTxt = share.status === 'pending' ? 'Pending' : 'Active';
+      return `
+        <div class="shared-out-recipient-row">
+          <span class="shared-out-email" title="${esc(share.recipient_email)}">${esc(share.recipient_email)}</span>
+          <select class="shared-out-perm-select" data-share-id="${share.id}" data-ws-id="${ws.id}">
+            <option value="edit" ${share.permission === 'edit' ? 'selected' : ''}>Can edit</option>
+            <option value="view" ${share.permission === 'view' ? 'selected' : ''}>View only</option>
+          </select>
+          <span class="shared-out-badge ${statusCls}">${statusTxt}</span>
+          <button class="btn-revoke" data-share-id="${share.id}" data-ws-id="${ws.id}">Revoke</button>
+        </div>`;
+    }).join('');
+    card.innerHTML = `
+      <div class="shared-out-card-header">
+        <span class="shared-out-ws-name" data-ws-id="${ws.id}">${esc(ws.name)}</span>
+        <span class="shared-out-ws-count">${ws.shares.length} recipient${ws.shares.length !== 1 ? 's' : ''}</span>
+      </div>
+      <div>${rows}</div>`;
+    container.appendChild(card);
+  });
+}
+
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
 function formatTimeSaved(totalSeconds) {
@@ -1340,7 +1459,7 @@ function showDashboard() {
   document.getElementById('dashboard').classList.remove('hidden');
   document.getElementById('welcome-state').classList.add('hidden');
   document.getElementById('list-detail').classList.add('hidden');
-  // Highlight home link, clear any active workspace item
+  document.getElementById('shared-out-view').classList.add('hidden');
   document.querySelectorAll('.nav-item--active').forEach(el => el.classList.remove('nav-item--active'));
   document.getElementById('sidebar-home').classList.add('nav-item--active');
   loadDashboard();
@@ -1643,14 +1762,26 @@ function renderDetail() {
   const detailEl  = document.getElementById('list-detail');
   const dashEl    = document.getElementById('dashboard');
 
+  const sharedOutEl = document.getElementById('shared-out-view');
+
   if (currentView === 'dashboard') {
     dashEl.classList.remove('hidden');
+    welcomeEl.classList.add('hidden');
+    detailEl.classList.add('hidden');
+    sharedOutEl.classList.add('hidden');
+    return;
+  }
+
+  if (currentView === 'shared-out') {
+    sharedOutEl.classList.remove('hidden');
+    dashEl.classList.add('hidden');
     welcomeEl.classList.add('hidden');
     detailEl.classList.add('hidden');
     return;
   }
 
   dashEl.classList.add('hidden');
+  sharedOutEl.classList.add('hidden');
 
   if (!selectedListId) {
     welcomeEl.classList.remove('hidden');
@@ -1748,6 +1879,7 @@ async function selectList(id) {
   selectedListId = id;
   currentView    = 'workspace';
   document.getElementById('dashboard').classList.add('hidden');
+  document.getElementById('shared-out-view').classList.add('hidden');
 
   // If this workspace isn't in currentLists (i.e. it's shared with us, not owned),
   // fetch the full data and cache it so renderDetail can find it.
@@ -1934,13 +2066,50 @@ document.getElementById('onboarding-skip').addEventListener('click', () => compl
 
 // DASHBOARD: sidebar home link + metric tiles
 document.getElementById('sidebar-home').addEventListener('click', showDashboard);
-document.getElementById('dash-tile-shared-by').addEventListener('click', () => { /* coming soon */ });
+document.getElementById('sidebar-shared-out').addEventListener('click', showSharedOut);
+document.getElementById('dash-tile-shared-by').addEventListener('click', showSharedOut);
 document.getElementById('dash-tile-shared-with').addEventListener('click', () => {
-  // Navigate to Team Workspaces section — visible in sidebar, no dedicated route yet
+  // Navigate to Team Workspaces section — visible in sidebar
 });
 document.getElementById('dash-tile-total').addEventListener('click', () => {
-  // Navigate to first workspace (highlights My Workspaces in sidebar)
   if (currentLists.length > 0) selectList(currentLists[0].id);
+});
+
+// SHARED OUT: permission change and revoke
+document.getElementById('shared-out-list').addEventListener('change', async e => {
+  const sel = e.target.closest('.shared-out-perm-select');
+  if (!sel) return;
+  const shareId = parseInt(sel.dataset.shareId);
+  const wsId    = parseInt(sel.dataset.wsId);
+  try {
+    await apiFetch(`/lists/${wsId}/shares/${shareId}`, {
+      method: 'PATCH', body: JSON.stringify({ permission: sel.value }),
+    });
+    const ws = sharedOutData.find(w => w.id == wsId);
+    if (ws) { const s = ws.shares.find(s => s.id == shareId); if (s) s.permission = sel.value; }
+  } catch (e) { showErrorToast(e.message); loadSharedOut(); }
+});
+
+document.getElementById('shared-out-list').addEventListener('click', async e => {
+  const revokeBtn = e.target.closest('.btn-revoke');
+  if (revokeBtn) {
+    const shareId = parseInt(revokeBtn.dataset.shareId);
+    const wsId    = parseInt(revokeBtn.dataset.wsId);
+    revokeBtn.disabled = true; revokeBtn.textContent = '…';
+    try {
+      await apiFetch(`/lists/${wsId}/shares/${shareId}`, { method: 'DELETE' });
+      const ws = sharedOutData.find(w => w.id == wsId);
+      if (ws) {
+        ws.shares = ws.shares.filter(s => s.id !== shareId);
+        if (ws.shares.length === 0) sharedOutData = sharedOutData.filter(w => w.id !== wsId);
+      }
+      renderSharedOut();
+      await loadSharedWorkspaces(); // refresh Team Workspaces sidebar for recipient
+    } catch (e) { showErrorToast(e.message); loadSharedOut(); }
+    return;
+  }
+  const wsName = e.target.closest('.shared-out-ws-name');
+  if (wsName) selectList(parseInt(wsName.dataset.wsId));
 });
 
 // TEMPLATE: template picker
