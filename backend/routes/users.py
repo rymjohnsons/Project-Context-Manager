@@ -234,23 +234,27 @@ def get_dashboard(
         for lst in recent
     ]
 
-    shared_by_me = (
-        db.query(models.WorkspaceShare)
-        .filter(
-            models.WorkspaceShare.shared_by_id == current_user.id,
-            models.WorkspaceShare.status       == "claimed",
+    # Wrap in try/except — workspace_shares may not exist yet if migration is pending
+    try:
+        shared_by_me = (
+            db.query(models.WorkspaceShare)
+            .filter(
+                models.WorkspaceShare.shared_by_id == current_user.id,
+                models.WorkspaceShare.status       == "claimed",
+            )
+            .count()
         )
-        .count()
-    )
-
-    shared_with_me = (
-        db.query(models.WorkspaceShare)
-        .filter(
-            models.WorkspaceShare.recipient_id == current_user.id,
-            models.WorkspaceShare.status       == "claimed",
+        shared_with_me = (
+            db.query(models.WorkspaceShare)
+            .filter(
+                models.WorkspaceShare.recipient_id == current_user.id,
+                models.WorkspaceShare.status       == "claimed",
+            )
+            .count()
         )
-        .count()
-    )
+    except Exception as exc:
+        _log.warning("workspace_shares query failed (migration pending?): %s", exc)
+        shared_by_me = shared_with_me = 0
 
     return schemas.DashboardOut(
         tabs_opened=tabs_opened,
