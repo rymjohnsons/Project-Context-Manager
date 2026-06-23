@@ -596,6 +596,27 @@
       min-width: 88px;
     }
 
+    /* ── Workspace grid (My Workspaces / Shared With Me views) ── */
+    .workspace-grid-view {
+      flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 2rem 2.5rem;
+    }
+    .workspace-grid-view.hidden { display: none; }
+    .workspace-grid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(195px, 1fr)); gap: 0.75rem;
+    }
+    .workspace-grid-card {
+      background: #FFFFFF; border: 1px solid #C5D8F0; border-radius: 10px;
+      padding: 1rem; cursor: pointer; transition: border-color 0.12s, box-shadow 0.12s;
+    }
+    .workspace-grid-card:hover {
+      border-color: #1E3A8A; box-shadow: 0 2px 8px rgba(30,58,138,0.08);
+    }
+    .workspace-grid-card-name {
+      font-size: 0.88rem; font-weight: 600; color: #0F1E4A;
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 0.35rem;
+    }
+    .workspace-grid-card-meta { font-size: 0.72rem; color: #8EAAD8; }
+
     .invite-perm-select, .share-perm-select {
       font-size: 0.72rem; color: #2D4FA0; background: #FFFFFF;
       border: 1px solid #C5D8F0; border-radius: 4px;
@@ -791,6 +812,24 @@
           <div class="dash-tile-label">My workspaces</div>
         </button>
       </div>
+    </div>
+
+    <!-- My Workspaces grid view -->
+    <div id="my-workspaces-view" class="workspace-grid-view hidden">
+      <div class="shared-out-header">
+        <div class="shared-out-title">My Workspaces</div>
+        <div class="shared-out-sub">All workspaces you own — click any to open it</div>
+      </div>
+      <div id="my-workspaces-grid" class="workspace-grid"></div>
+    </div>
+
+    <!-- Shared With Me grid view -->
+    <div id="shared-with-me-view" class="workspace-grid-view hidden">
+      <div class="shared-out-header">
+        <div class="shared-out-title">Shared with me</div>
+        <div class="shared-out-sub">Workspaces others have shared with you</div>
+      </div>
+      <div id="shared-with-me-grid" class="workspace-grid"></div>
     </div>
 
     <!-- SHARING: Shared Out management view -->
@@ -1757,48 +1796,102 @@ function renderSidebar() {
   }
 }
 
-function renderDetail() {
-  const welcomeEl = document.getElementById('welcome-state');
-  const detailEl  = document.getElementById('list-detail');
-  const dashEl    = document.getElementById('dashboard');
+// All top-level content panels — renderDetail always clears then shows only the right one
+const _ALL_VIEWS = [
+  'dashboard', 'shared-out-view', 'my-workspaces-view',
+  'shared-with-me-view', 'welcome-state', 'list-detail',
+];
+function _hideAllViews() {
+  _ALL_VIEWS.forEach(id => document.getElementById(id).classList.add('hidden'));
+}
 
-  const sharedOutEl = document.getElementById('shared-out-view');
+function renderMyWorkspaces() {
+  const grid = document.getElementById('my-workspaces-grid');
+  grid.innerHTML = '';
+  if (currentLists.length === 0) {
+    grid.innerHTML = '<p class="dash-empty-hint">No workspaces yet — click + in the sidebar to create one.</p>';
+    return;
+  }
+  currentLists.forEach(list => {
+    const card = document.createElement('div');
+    card.className = 'workspace-grid-card';
+    card.innerHTML = `
+      <div class="workspace-grid-card-name">${esc(list.name)}</div>
+      <div class="workspace-grid-card-meta">${list.urls.length} resource${list.urls.length !== 1 ? 's' : ''}${list.starred ? ' · ★' : ''}</div>`;
+    card.addEventListener('click', () => selectList(list.id));
+    grid.appendChild(card);
+  });
+}
+
+function showMyWorkspaces() {
+  currentView    = 'my-workspaces';
+  selectedListId = null;
+  document.querySelectorAll('.nav-item--active').forEach(el => el.classList.remove('nav-item--active'));
+  renderDetail();
+}
+
+function renderSharedWithMe() {
+  const grid = document.getElementById('shared-with-me-grid');
+  grid.innerHTML = '';
+  if (sharedWorkspaces.length === 0) {
+    grid.innerHTML = '<p class="dash-empty-hint">No workspaces have been shared with you yet.</p>';
+    return;
+  }
+  sharedWorkspaces.forEach(ws => {
+    const card = document.createElement('div');
+    card.className = 'workspace-grid-card';
+    card.innerHTML = `
+      <div class="workspace-grid-card-name">${esc(ws.name)}</div>
+      <div class="workspace-grid-card-meta">${ws.url_count} resource${ws.url_count !== 1 ? 's' : ''} · from ${esc(ws.shared_by_email.split('@')[0])}</div>`;
+    card.addEventListener('click', () => selectList(ws.id));
+    grid.appendChild(card);
+  });
+}
+
+function showSharedWithMe() {
+  currentView    = 'shared-with-me';
+  selectedListId = null;
+  document.querySelectorAll('.nav-item--active').forEach(el => el.classList.remove('nav-item--active'));
+  renderDetail();
+}
+
+function renderDetail() {
+  _hideAllViews();
 
   if (currentView === 'dashboard') {
-    dashEl.classList.remove('hidden');
-    welcomeEl.classList.add('hidden');
-    detailEl.classList.add('hidden');
-    sharedOutEl.classList.add('hidden');
+    document.getElementById('dashboard').classList.remove('hidden');
     return;
   }
-
   if (currentView === 'shared-out') {
-    sharedOutEl.classList.remove('hidden');
-    dashEl.classList.add('hidden');
-    welcomeEl.classList.add('hidden');
-    detailEl.classList.add('hidden');
+    document.getElementById('shared-out-view').classList.remove('hidden');
+    return;
+  }
+  if (currentView === 'my-workspaces') {
+    document.getElementById('my-workspaces-view').classList.remove('hidden');
+    renderMyWorkspaces();
+    return;
+  }
+  if (currentView === 'shared-with-me') {
+    document.getElementById('shared-with-me-view').classList.remove('hidden');
+    renderSharedWithMe();
     return;
   }
 
-  dashEl.classList.add('hidden');
-  sharedOutEl.classList.add('hidden');
-
+  // workspace view
   if (!selectedListId) {
-    welcomeEl.classList.remove('hidden');
-    detailEl.classList.add('hidden');
+    document.getElementById('welcome-state').classList.remove('hidden');
     return;
   }
 
-  const list = currentLists.find(l => l.id == selectedListId) || sharedListDetails.find(l => l.id == selectedListId)
-            || sharedListDetails.find(l => l.id == selectedListId);
+  const list = currentLists.find(l => l.id == selectedListId) || sharedListDetails.find(l => l.id == selectedListId);
   if (!list) {
     selectedListId = null;
-    welcomeEl.classList.remove('hidden');
-    detailEl.classList.add('hidden');
+    document.getElementById('welcome-state').classList.remove('hidden');
     return;
   }
 
-  welcomeEl.classList.add('hidden');
+  const welcomeEl = document.getElementById('welcome-state');
+  const detailEl  = document.getElementById('list-detail');
   detailEl.classList.remove('hidden');
 
   closeInvitePanel(); // reset invite state when switching workspaces
@@ -2068,12 +2161,8 @@ document.getElementById('onboarding-skip').addEventListener('click', () => compl
 document.getElementById('sidebar-home').addEventListener('click', showDashboard);
 document.getElementById('sidebar-shared-out').addEventListener('click', showSharedOut);
 document.getElementById('dash-tile-shared-by').addEventListener('click', showSharedOut);
-document.getElementById('dash-tile-shared-with').addEventListener('click', () => {
-  // Navigate to Team Workspaces section — visible in sidebar
-});
-document.getElementById('dash-tile-total').addEventListener('click', () => {
-  if (currentLists.length > 0) selectList(currentLists[0].id);
-});
+document.getElementById('dash-tile-shared-with').addEventListener('click', showSharedWithMe);
+document.getElementById('dash-tile-total').addEventListener('click', showMyWorkspaces);
 
 // SHARED OUT: permission change and revoke
 document.getElementById('shared-out-list').addEventListener('change', async e => {
