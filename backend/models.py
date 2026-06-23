@@ -60,6 +60,26 @@ class Url(Base):
         return self.added_by.email if self.added_by else None
 
 
+class WorkspaceShare(Base):
+    """Tracks email-based workspace shares — both pending (no account yet) and claimed."""
+    __tablename__ = "workspace_shares"
+
+    id              = Column(Integer, primary_key=True, index=True)
+    workspace_id    = Column(Integer, ForeignKey("lists.id", ondelete="CASCADE"), nullable=False)
+    shared_by_id    = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    recipient_email = Column(String, nullable=False, index=True)
+    recipient_id    = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    # pending  = email stored, no Tabrador account yet
+    # claimed  = recipient has an account and can see the workspace
+    status          = Column(String, default="pending", nullable=False)
+    created_at      = Column(DateTime(timezone=True), default=utcnow)
+    claimed_at      = Column(DateTime(timezone=True), nullable=True)
+
+    workspace  = relationship("List",  foreign_keys=[workspace_id])
+    shared_by  = relationship("User",  foreign_keys=[shared_by_id])
+    recipient  = relationship("User",  foreign_keys=[recipient_id])
+
+
 class PasswordResetToken(Base):
     __tablename__ = "password_reset_tokens"
 

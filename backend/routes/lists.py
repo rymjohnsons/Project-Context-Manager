@@ -1,7 +1,9 @@
 import re
 import urllib.request
+from datetime import datetime, timezone
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 import models
@@ -14,13 +16,18 @@ router = APIRouter(prefix="/lists", tags=["lists"])
 
 
 def get_list_or_404(list_id: int, user: models.User, db: Session) -> models.List:
+    """Return the workspace if the user is the owner OR has a claimed share."""
     lst = db.query(models.List).filter(models.List.id == list_id).first()
     if lst is None:
-        # TERMINOLOGY: "workspace" used in all user-facing messages (was "list")
         raise HTTPException(status_code=404, detail="Workspace not found.")
     if lst.owner_id != user.id:
-        # TERMINOLOGY: "workspace" used in all user-facing messages (was "list")
-        raise HTTPException(status_code=403, detail="You don't have access to this workspace.")
+        share = db.query(models.WorkspaceShare).filter(
+            models.WorkspaceShare.workspace_id == list_id,
+            models.WorkspaceShare.recipient_id  == user.id,
+            models.WorkspaceShare.status        == "claimed",
+        ).first()
+        if not share:
+            raise HTTPException(status_code=403, detail="You don't have access to this workspace.")
     return lst
 
 
@@ -52,6 +59,101 @@ def _bg_store_title(url_id: int, url_str: str):
             db.commit()
     finally:
         db.close()
+
+
+# ── Workspace sharing ──────────────────────────────────────────────────────────
+
+@router.get("/shared-with-me", response_model=list[schemas.SharedWorkspaceOut])
+def get_shared_workspaces(
+    db:           Session     = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    """Workspaces other users have shared directly with the current user."""
+    shares = (
+        db.query(models.WorkspaceShare)
+        .filter(
+            models.WorkspaceShare.recipient_id == current_user.id,
+            models.WorkspaceShare.status       == "claimed",
+        )
+        .all()
+    )
+    return [
+        schemas.SharedWorkspaceOut(
+            id=s.workspace.id,
+            name=s.workspace.name,
+            url_count=len(s.workspace.urls),
+            starred=s.workspace.starred,
+            shared_by_email=s.shared_by.email,
+        )
+        for s in shares
+        if s.workspace is not None
+    ]
+
+
+@router.post("/{list_id}/share", response_model=schemas.WorkspaceShareOut, status_code=201)
+def share_workspace(
+    list_id:  int,
+    share_in: schemas.WorkspaceShareCreate,
+    db:       Session     = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    """Share a workspace to an email address (owner only)."""
+    lst = db.query(models.List).filter(models.List.id == list_id).first()
+    if lst is None:
+        raise HTTPException(status_code=404, detail="Workspace not found.")
+    if lst.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the workspace owner can share it.")
+
+    recipient_email = share_in.email.strip().lower()
+    if recipient_email == current_user.email.lower():
+        raise HTTPException(status_code=400, detail="You can't share a workspace with yourself.")
+
+    # Prevent duplicate shares
+    existing = db.query(models.WorkspaceShare).filter(
+        models.WorkspaceShare.workspace_id    == list_id,
+        models.WorkspaceShare.recipient_email == recipient_email,
+    ).first()
+    if existing:
+        raise HTTPException(status_code=400, detail="Already shared with that email address.")
+
+    # Immediate share if the recipient already has an account
+    recipient = db.query(models.User).filter(
+        func.lower(models.User.email) == recipient_email
+    ).first()
+
+    now = datetime.now(timezone.utc)
+    share = models.WorkspaceShare(
+        workspace_id    = list_id,
+        shared_by_id    = current_user.id,
+        recipient_email = recipient_email,
+        recipient_id    = recipient.id if recipient else None,
+        status          = "claimed"  if recipient else "pending",
+        claimed_at      = now        if recipient else None,
+    )
+    db.add(share)
+    db.commit()
+    db.refresh(share)
+    return share
+
+
+@router.get("/{list_id}/shares", response_model=list[schemas.WorkspaceShareOut])
+def get_workspace_shares(
+    list_id:  int,
+    db:       Session     = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    """Share status list for a workspace (owner only)."""
+    lst = db.query(models.List).filter(models.List.id == list_id).first()
+    if lst is None:
+        raise HTTPException(status_code=404, detail="Workspace not found.")
+    if lst.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the workspace owner can view shares.")
+    return (
+        db.query(models.WorkspaceShare)
+        .filter(models.WorkspaceShare.workspace_id == list_id)
+        .order_by(models.WorkspaceShare.created_at)
+        .all()
+    )
 
 
 # ── List CRUD ──────────────────────────────────────────────────────────────────

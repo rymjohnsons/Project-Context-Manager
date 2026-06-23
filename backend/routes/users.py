@@ -154,6 +154,18 @@ def register(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
     db.add(user)
     db.commit()
     db.refresh(user)
+
+    # Claim any workspace shares that were sent to this email before they had an account
+    db.query(models.WorkspaceShare).filter(
+        models.WorkspaceShare.recipient_email == user.email.lower(),
+        models.WorkspaceShare.status          == "pending",
+    ).update({
+        "recipient_id": user.id,
+        "status":       "claimed",
+        "claimed_at":   datetime.now(timezone.utc),
+    })
+    db.commit()
+
     return user
 
 

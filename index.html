@@ -525,6 +525,28 @@
 
     /* sidebar home button */
     .sidebar-home-btn { flex-shrink: 0; border-bottom: 1px solid #2D4FA0; }
+
+    /* ── Invite / share panel ── */
+    .invite-panel {
+      background: #F4F1EA; border: 1px solid #C5D8F0; border-radius: 8px;
+      padding: 0.75rem 0.85rem; margin-bottom: 0.75rem; flex-shrink: 0;
+    }
+    .invite-panel.hidden { display: none; }
+    .invite-form-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; }
+    .invite-form-row:last-child { margin-bottom: 0; }
+    .invite-form-row input { flex: 1; }
+    .invite-shares-list { display: flex; flex-direction: column; gap: 0.35rem; margin-top: 0.5rem; }
+    .invite-share-row {
+      display: flex; align-items: center; gap: 0.6rem;
+      font-size: 0.78rem; color: #2D4FA0; padding: 0.1rem 0;
+    }
+    .invite-share-email { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .invite-badge {
+      font-size: 0.66rem; font-weight: 600; padding: 0.15rem 0.5rem;
+      border-radius: 10px; flex-shrink: 0; white-space: nowrap;
+    }
+    .invite-badge--pending { background: #FEF3C7; color: #92400E; }
+    .invite-badge--claimed { background: #D1FAE5; color: #065F46; }
   </style>
 </head>
 <body>
@@ -632,7 +654,8 @@
           <!-- TERMINOLOGY: "Team Workspaces" was "Shared With Me" -->
           <span class="nav-section-label">Team Workspaces</span>
         </div>
-        <p class="nav-coming-soon">Coming soon</p>
+        <!-- SHARING: populated by loadSharedWorkspaces() -->
+        <div id="sidebar-team-workspaces"></div>
       </div>
 
       <div class="nav-section">
@@ -721,9 +744,20 @@
           <button id="open-all-btn"    class="btn-open">Start Working ↗</button>
           <button id="close-all-btn"   class="btn-close hidden">Wrap Up</button>
           <button id="star-btn"        class="btn-star">☆ Star</button>
-          <button id="share-btn"       class="btn-share">Share</button>
+          <button id="share-btn"       class="btn-share">Copy Link</button>
+          <button id="invite-btn"      class="btn-share">Invite</button>
           <button id="delete-list-btn" class="btn-danger-outline">Delete Workspace</button>
         </div>
+      </div>
+
+      <!-- SHARING: invite-by-email panel, toggled by Invite button -->
+      <div id="invite-panel" class="invite-panel hidden">
+        <div class="invite-form-row">
+          <input type="email" id="invite-email" placeholder="Colleague's email address…" autocomplete="off" />
+          <button id="invite-submit-btn" class="btn-primary" style="font-size:0.8rem;padding:0.4rem 0.85rem;white-space:nowrap;">Invite</button>
+          <button id="invite-close-btn" class="btn-danger-outline" style="font-size:0.8rem;padding:0.4rem 0.65rem;" title="Close">✕</button>
+        </div>
+        <div id="invite-shares-list" class="invite-shares-list"></div>
       </div>
 
       <div id="large-workspace-warning" class="large-workspace-warning hidden">
@@ -917,6 +951,7 @@ async function submitAuth() {
     } else {
       showApp(user.email);
       await render();
+      await loadSharedWorkspaces();
       showDashboard();
       checkShareLink();
     }
@@ -956,6 +991,7 @@ async function completeOnboarding(workType) {
   const email = document.getElementById('user-email').textContent;
   showApp(email);
   await render();
+  await loadSharedWorkspaces();
   showDashboard();
   checkShareLink();
 }
@@ -1083,9 +1119,11 @@ async function submitReset() {
 
 // ── App state ─────────────────────────────────────────────────────────────────
 
-let currentLists   = [];
-let selectedListId = null;
-let currentView    = 'dashboard'; // 'dashboard' | 'workspace'
+let currentLists      = [];
+let selectedListId    = null;
+let currentView       = 'dashboard'; // 'dashboard' | 'workspace'
+let sharedWorkspaces  = []; // workspaces shared with current user
+let currentShares     = []; // shares for the currently selected workspace (owner view)
 const trackedWindows        = {};
 const openedLists           = new Set();
 const dismissedLargeWarning = new Set();
@@ -1164,6 +1202,66 @@ async function toggleStar() {
   } catch (e) {
     showErrorToast(e.message);
   }
+}
+
+// ── Workspace sharing (email invite) ─────────────────────────────────────────
+
+async function loadSharedWorkspaces() {
+  try {
+    sharedWorkspaces = await apiFetch('/lists/shared-with-me');
+  } catch { sharedWorkspaces = []; }
+  renderSidebar();
+}
+
+function renderSharesList() {
+  const el = document.getElementById('invite-shares-list');
+  el.innerHTML = '';
+  currentShares.forEach(share => {
+    const row = document.createElement('div');
+    row.className = 'invite-share-row';
+    const cls  = share.status === 'pending' ? 'invite-badge--pending' : 'invite-badge--claimed';
+    const text = share.status === 'pending' ? 'Pending' : 'Accepted';
+    row.innerHTML = `
+      <span class="invite-share-email">${esc(share.recipient_email)}</span>
+      <span class="invite-badge ${cls}">${text}</span>`;
+    el.appendChild(row);
+  });
+}
+
+async function loadShares(listId) {
+  try {
+    currentShares = await apiFetch(`/lists/${listId}/shares`);
+  } catch { currentShares = []; }
+  renderSharesList();
+}
+
+async function submitInvite() {
+  const email = document.getElementById('invite-email').value.trim();
+  if (!email || !selectedListId) return;
+  const btn = document.getElementById('invite-submit-btn');
+  btn.disabled = true; btn.textContent = 'Inviting…';
+  try {
+    const share = await apiFetch(`/lists/${selectedListId}/share`, {
+      method: 'POST', body: JSON.stringify({ email }),
+    });
+    document.getElementById('invite-email').value = '';
+    currentShares = [...currentShares, share];
+    renderSharesList();
+  } catch (e) { showErrorToast(e.message); }
+  finally { btn.disabled = false; btn.textContent = 'Invite'; }
+}
+
+function openInvitePanel() {
+  document.getElementById('invite-panel').classList.remove('hidden');
+  document.getElementById('invite-email').focus();
+  if (selectedListId) loadShares(selectedListId);
+}
+
+function closeInvitePanel() {
+  document.getElementById('invite-panel').classList.add('hidden');
+  document.getElementById('invite-email').value = '';
+  currentShares = [];
+  document.getElementById('invite-shares-list').innerHTML = '';
 }
 
 // ── Dashboard ─────────────────────────────────────────────────────────────────
@@ -1466,26 +1564,46 @@ function buildNavItem(list) {
 }
 
 function renderSidebar() {
-  const myListsContainer = document.getElementById('sidebar-lists');
-  const starredContainer = document.getElementById('sidebar-starred-lists');
+  const myListsContainer   = document.getElementById('sidebar-lists');
+  const teamContainer      = document.getElementById('sidebar-team-workspaces');
+  const starredContainer   = document.getElementById('sidebar-starred-lists');
   myListsContainer.innerHTML = '';
+  teamContainer.innerHTML    = '';
   starredContainer.innerHTML = '';
 
   if (currentLists.length === 0) {
     const p = document.createElement('p');
     p.className   = 'nav-empty-hint';
-    // TERMINOLOGY: "No workspaces yet" was "No lists yet"
     p.textContent = 'No workspaces yet — click + to create one.';
     myListsContainer.appendChild(p);
   } else {
     currentLists.forEach(list => myListsContainer.appendChild(buildNavItem(list)));
   }
 
+  // SHARING: Team Workspaces section — workspaces shared with current user
+  if (sharedWorkspaces.length === 0) {
+    const p = document.createElement('p');
+    p.className   = 'nav-coming-soon';
+    p.textContent = 'No workspaces shared with you yet.';
+    teamContainer.appendChild(p);
+  } else {
+    sharedWorkspaces.forEach(ws => {
+      const item = document.createElement('div');
+      item.className  = 'nav-item' + (ws.id == selectedListId ? ' nav-item--active' : '');
+      item.dataset.id = ws.id;
+      item.innerHTML  = `
+        <span class="nav-item-name">${esc(ws.name)}</span>
+        <span class="nav-item-count">${ws.url_count}</span>`;
+      item.addEventListener('click', () => selectList(ws.id));
+      teamContainer.appendChild(item);
+    });
+  }
+
   const starred = currentLists.filter(l => l.starred);
   if (starred.length === 0) {
     const p = document.createElement('p');
     p.className   = 'nav-coming-soon';
-    p.textContent = 'No starred lists yet.';
+    p.textContent = 'No starred workspaces yet.';
     starredContainer.appendChild(p);
   } else {
     starred.forEach(list => starredContainer.appendChild(buildNavItem(list)));
@@ -1522,6 +1640,8 @@ function renderDetail() {
 
   welcomeEl.classList.add('hidden');
   detailEl.classList.remove('hidden');
+
+  closeInvitePanel(); // reset invite state when switching workspaces
 
   document.getElementById('detail-list-name').value  = list.name;
   // TERMINOLOGY: "resource(s)" was "URL(s)"
@@ -1678,6 +1798,13 @@ document.getElementById('dismiss-large-warning').addEventListener('click', () =>
 });
 document.getElementById('star-btn').addEventListener('click', toggleStar);
 document.getElementById('share-btn').addEventListener('click', shareList);
+document.getElementById('invite-btn').addEventListener('click', openInvitePanel);
+document.getElementById('invite-close-btn').addEventListener('click', closeInvitePanel);
+document.getElementById('invite-submit-btn').addEventListener('click', submitInvite);
+document.getElementById('invite-email').addEventListener('keydown', e => {
+  if (e.key === 'Enter') submitInvite();
+  if (e.key === 'Escape') closeInvitePanel();
+});
 
 document.getElementById('delete-list-btn').addEventListener('click', async () => {
   if (!selectedListId) return;
@@ -1788,6 +1915,7 @@ async function boot() {
     const user = await apiFetch('/users/me');
     showApp(user.email);
     await render();
+    await loadSharedWorkspaces();
     showDashboard();
     checkShareLink();
   } catch {

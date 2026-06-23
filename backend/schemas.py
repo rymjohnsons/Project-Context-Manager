@@ -85,6 +85,30 @@ class TokenData(BaseModel):
     user_id: int | None = None
 
 
+# ── Workspace share schemas ────────────────────────────────────────────────────
+
+class WorkspaceShareCreate(BaseModel):
+    email: str
+
+
+class WorkspaceShareOut(BaseModel):
+    id:              int
+    recipient_email: str
+    status:          str      # 'pending' | 'claimed'
+    created_at:      datetime
+
+    model_config = {"from_attributes": True}
+
+
+class SharedWorkspaceOut(BaseModel):
+    """A workspace shared with the current user (returned by /lists/shared-with-me)."""
+    id:              int
+    name:            str
+    url_count:       int
+    starred:         bool = False
+    shared_by_email: str
+
+
 # ── Dashboard schemas ──────────────────────────────────────────────────────────
 
 class RecentWorkspace(BaseModel):
