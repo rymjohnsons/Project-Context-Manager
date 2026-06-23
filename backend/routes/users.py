@@ -86,7 +86,9 @@ _RESET_EMAIL_HTML = """\
         <tr>
           <td style="padding:16px 32px;background:#F4F1EA;border-top:1px solid #C5D8F0;">
             <p style="margin:0;font-size:11px;color:#8EAAD8;text-align:center;">
-              Tabrador &mdash; Fetch your tabs
+              Tabrador &mdash; Fetch your tabs &mdash;
+              <a href="mailto:hello@tabrador.app"
+                 style="color:#8EAAD8;text-decoration:none;">hello@tabrador.app</a>
             </p>
           </td>
         </tr>
@@ -105,8 +107,8 @@ def _send_reset_email(to_email: str, token: str) -> None:
         _log.warning("RESEND_API_KEY not set — skipping password-reset email to %s", to_email)
         return
 
-    from_addr = os.environ.get("RESEND_FROM_EMAIL", "onboarding@resend.dev")
-    reset_link = f"{_APP_URL}/app?reset_token={token}"
+    from_addr = "hello@tabrador.app"
+    reset_link = f"{_APP_URL}/reset-password?token={token}"
     html = _RESET_EMAIL_HTML.replace("RESET_LINK", reset_link)
 
     payload = json.dumps({

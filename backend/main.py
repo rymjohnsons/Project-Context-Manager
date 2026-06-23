@@ -58,6 +58,13 @@ def serve_frontend():
 
 @app.get("/", tags=["frontend"])
 def root():
-    # Serve the frontend directly so tabrador.app lands on the app, not a JSON message
+    html = os.path.join(os.path.dirname(__file__), '..', 'index.html')
+    return FileResponse(os.path.abspath(html))
+
+
+@app.get("/reset-password", tags=["frontend"])
+def reset_password_page():
+    # Serves index.html so password-reset email links (tabrador.app/reset-password?token=...)
+    # load the frontend, which reads the token from the query string in boot().
     html = os.path.join(os.path.dirname(__file__), '..', 'index.html')
     return FileResponse(os.path.abspath(html))
