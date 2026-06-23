@@ -1133,7 +1133,8 @@ async function submitReset() {
 let currentLists      = [];
 let selectedListId    = null;
 let currentView       = 'dashboard'; // 'dashboard' | 'workspace'
-let sharedWorkspaces  = []; // workspaces shared with current user
+let sharedWorkspaces  = []; // workspaces shared with current user (summary from /shared-with-me)
+let sharedListDetails = []; // full List data for shared workspaces (fetched on click)
 let currentShares     = []; // shares for the currently selected workspace (owner view)
 const trackedWindows        = {};
 const openedLists           = new Set();
@@ -1657,7 +1658,8 @@ function renderDetail() {
     return;
   }
 
-  const list = currentLists.find(l => l.id == selectedListId);
+  const list = currentLists.find(l => l.id == selectedListId)
+            || sharedListDetails.find(l => l.id == selectedListId);
   if (!list) {
     selectedListId = null;
     welcomeEl.classList.remove('hidden');
@@ -1742,10 +1744,25 @@ function renderDetail() {
   }
 }
 
-function selectList(id) {
+async function selectList(id) {
   selectedListId = id;
   currentView    = 'workspace';
   document.getElementById('dashboard').classList.add('hidden');
+
+  // If this workspace isn't in currentLists (i.e. it's shared with us, not owned),
+  // fetch the full data and cache it so renderDetail can find it.
+  if (!currentLists.find(l => l.id == id)) {
+    try {
+      const full = await apiFetch(`/lists/${id}`);
+      const idx  = sharedListDetails.findIndex(l => l.id == id);
+      if (idx >= 0) sharedListDetails[idx] = full;
+      else sharedListDetails.push(full);
+    } catch (e) {
+      showErrorToast(e.message);
+      return;
+    }
+  }
+
   renderSidebar();
   renderDetail();
 }
@@ -1755,6 +1772,15 @@ async function render() {
     currentLists = await apiFetch('/lists');
   } catch {
     return;
+  }
+  // If a shared (non-owned) workspace is currently open, refresh its cached data
+  if (selectedListId && !currentLists.find(l => l.id == selectedListId)) {
+    const idx = sharedListDetails.findIndex(l => l.id == selectedListId);
+    if (idx >= 0) {
+      try {
+        sharedListDetails[idx] = await apiFetch(`/lists/${selectedListId}`);
+      } catch { /* non-fatal */ }
+    }
   }
   renderSidebar();
   renderDetail();
