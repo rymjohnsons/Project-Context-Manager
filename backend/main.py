@@ -15,19 +15,7 @@ logging.basicConfig(level=logging.INFO)
 _log = logging.getLogger(__name__)
 _log.info("Database: %s", "PostgreSQL" if not DATABASE_URL.startswith("sqlite") else "SQLite (local dev)")
 
-# Run Alembic migrations programmatically on every startup.
-# This is the authoritative migration path — the Procfile also runs
-# 'alembic upgrade head', but doing it here too means a Procfile failure
-# or Railway build-cache issue can never leave the schema out of sync.
-try:
-    from alembic.config import Config as _AlembicConfig
-    from alembic import command as _alembic
-    _cfg = _AlembicConfig(os.path.join(os.path.dirname(__file__), 'alembic.ini'))
-    _alembic.upgrade(_cfg, 'head')
-    _log.info("Alembic: schema is up to date")
-except Exception as _exc:
-    _log.error("Alembic migration failed — app may be running on stale schema: %s", _exc)
-
+# Migrations are handled by 'alembic upgrade head' in the Procfile before uvicorn starts.
 # create_all is a safety net for local dev (no-op when Alembic has already created tables).
 models.Base.metadata.create_all(bind=engine)
 
