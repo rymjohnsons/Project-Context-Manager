@@ -35,74 +35,18 @@ _APP_URL = os.environ.get("APP_URL", "https://tabrador.app")
 _RESET_EMAIL_HTML = """\
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="margin:0;padding:0;background:#F4F1EA;
-             font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0"
-         style="background:#F4F1EA;padding:40px 20px;">
-    <tr><td align="center">
-      <table width="100%" style="max-width:480px;background:#FFFFFF;
-                                  border-radius:12px;border:1px solid #C5D8F0;
-                                  overflow:hidden;">
-        <!-- Header -->
-        <tr>
-          <td style="background:#1E3A8A;padding:24px 32px;">
-            <p style="margin:0;font-size:20px;font-weight:700;color:#FFFFFF;
-                      letter-spacing:-0.02em;">Tabrador</p>
-            <p style="margin:4px 0 0;font-size:11px;color:#8EAAD8;
-                      letter-spacing:0.08em;text-transform:uppercase;">Fetch your tabs</p>
-          </td>
-        </tr>
-        <!-- Body -->
-        <tr>
-          <td style="padding:32px;">
-            <h1 style="margin:0 0 12px;font-size:20px;font-weight:700;color:#0F1E4A;">
-              Reset your password
-            </h1>
-            <p style="margin:0 0 24px;font-size:14px;color:#2D4FA0;line-height:1.6;">
-              We received a request to reset the password for your Tabrador account.
-              Click the button below to choose a new password.
-              This link expires in&nbsp;1&nbsp;hour.
-            </p>
-            <!-- CTA button -->
-            <p style="margin:0 0 24px;">
-              <a href="RESET_LINK" target="_blank"
-                 style="background-color:#1E3A8A;color:#FFFFFF;padding:14px 28px;
-                        text-decoration:none;border-radius:8px;display:inline-block;
-                        font-size:14px;font-weight:600;letter-spacing:0.01em;">
-                Reset my password &rarr;
-              </a>
-            </p>
-            <!-- Fallback link -->
-            <p style="margin:0 0 6px;font-size:12px;color:#8EAAD8;line-height:1.5;">
-              If the button doesn&rsquo;t work, paste this link into your browser:
-            </p>
-            <p style="margin:0 0 24px;font-size:11px;color:#2D4FA0;word-break:break-all;
-                       background:#F4F1EA;border-radius:6px;padding:10px 12px;">
-              RESET_LINK
-            </p>
-            <p style="margin:0;font-size:12px;color:#8EAAD8;line-height:1.5;">
-              If you didn&rsquo;t request a password reset, you can safely ignore this email.
-              Your password will not change.
-            </p>
-          </td>
-        </tr>
-        <!-- Footer -->
-        <tr>
-          <td style="padding:16px 32px;background:#F4F1EA;border-top:1px solid #C5D8F0;">
-            <p style="margin:0;font-size:11px;color:#8EAAD8;text-align:center;">
-              Tabrador &mdash; Fetch your tabs &mdash;
-              <a href="mailto:hello@tabrador.app"
-                 style="color:#8EAAD8;text-decoration:none;">hello@tabrador.app</a>
-            </p>
-          </td>
-        </tr>
-      </table>
-    </td></tr>
-  </table>
+<head><meta charset="UTF-8"></head>
+<body style="font-family:Arial,sans-serif;font-size:15px;color:#222;padding:32px;">
+  <p><strong>Tabrador — Reset your password</strong></p>
+  <p>We received a request to reset your Tabrador password. Click the link below to choose a new password. This link expires in 1 hour.</p>
+  <p>Click here to reset your password:<br>
+    <a href="RESET_LINK">RESET_LINK</a>
+  </p>
+  <p>If the link above doesn't work, copy and paste this URL into your browser:<br>
+    RESET_LINK
+  </p>
+  <p style="color:#888;font-size:13px;">If you didn't request a password reset, you can ignore this email. Your password will not change.</p>
+  <p style="color:#888;font-size:13px;">— Tabrador &middot; hello@tabrador.app</p>
 </body>
 </html>
 """
