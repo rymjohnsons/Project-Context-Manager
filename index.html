@@ -661,8 +661,10 @@
     <!-- Reset password flow -->
     <div id="reset-section" class="forgot-section hidden">
       <div class="auth-form">
-        <input type="text"     id="reset-token"    placeholder="Paste reset token" />
-        <input type="password" id="reset-password" placeholder="New password" autocomplete="new-password" />
+        <!-- Token is read silently from the URL query string — never shown to the user -->
+        <input type="hidden" id="reset-token" />
+        <input type="password" id="reset-password"         placeholder="New password"      autocomplete="new-password" />
+        <input type="password" id="reset-password-confirm" placeholder="Confirm new password" autocomplete="new-password" />
         <button id="reset-submit" class="btn-primary" style="padding:0.65rem;">Set New Password</button>
       </div>
       <p class="auth-back-row"><button class="auth-back-link" id="reset-back-link">← Back to login</button></p>
@@ -1209,7 +1211,10 @@ async function submitForgot() {
 async function submitReset() {
   const token    = document.getElementById('reset-token').value.trim();
   const password = document.getElementById('reset-password').value;
-  if (!token || !password) { setAuthError('Enter both the token and your new password.'); return; }
+  const confirm  = document.getElementById('reset-password-confirm').value;
+  if (!token)    { setAuthError('Reset link is missing its token — please use the link from your email.'); return; }
+  if (!password) { setAuthError('Please enter a new password.'); return; }
+  if (password !== confirm) { setAuthError('Passwords do not match.'); return; }
   const btn = document.getElementById('reset-submit');
   btn.disabled = true; btn.textContent = 'Please wait…';
   try {
@@ -2033,6 +2038,9 @@ document.getElementById('forgot-email').addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('forgot-submit').click();
 });
 document.getElementById('reset-password').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('reset-password-confirm').focus();
+});
+document.getElementById('reset-password-confirm').addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('reset-submit').click();
 });
 
