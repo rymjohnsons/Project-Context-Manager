@@ -1,8 +1,10 @@
 fastapi
 uvicorn[standard]
 sqlalchemy
+alembic
 python-jose[cryptography]
 bcrypt
 pydantic[email]
 psycopg2-binary
 python-dotenv
+resend
