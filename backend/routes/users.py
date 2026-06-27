@@ -1,7 +1,21 @@
 import logging
 import os
 import secrets
+import subprocess
+import sys
 from datetime import datetime, timezone
+
+# Install resend at startup if the build cache omitted it
+try:
+    import resend as _resend  # noqa: F401
+except ImportError:
+    _log_boot = logging.getLogger(__name__)
+    _log_boot.warning("resend not found — installing now")
+    subprocess.check_call(
+        [sys.executable, "-m", "pip", "install", "resend", "-q"],
+        stdout=subprocess.DEVNULL,
+    )
+    _log_boot.warning("resend installed successfully")
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
