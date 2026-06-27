@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import secrets
+import urllib.error
 import urllib.request
 from datetime import datetime, timezone
 
@@ -128,11 +129,16 @@ def _send_reset_email(to_email: str, token: str) -> None:
         method="POST",
     )
 
+    _log.info(
+        "Sending reset email — from: %s  to: %s  endpoint: https://api.resend.com/emails",
+        from_addr, to_email,
+    )
     try:
         with urllib.request.urlopen(req, timeout=10) as resp:
-            if resp.status not in (200, 201):
-                body = resp.read(512).decode("utf-8", errors="ignore")
-                _log.error("Resend returned HTTP %s for %s: %s", resp.status, to_email, body)
+            _log.info("Resend accepted email for %s (HTTP %s)", to_email, resp.status)
+    except urllib.error.HTTPError as exc:
+        body = exc.read(512).decode("utf-8", errors="ignore")
+        _log.error("Resend returned HTTP %s for %s: %s", exc.code, to_email, body)
     except Exception as exc:
         _log.error("Failed to send reset email to %s: %s", to_email, exc)
 
