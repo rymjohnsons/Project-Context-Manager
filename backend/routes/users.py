@@ -5,6 +5,9 @@ import subprocess
 import sys
 from datetime import datetime, timezone
 
+from fastapi import Request
+from limiter import limiter
+
 # Install resend at startup if the build cache omitted it
 try:
     import resend as _resend  # noqa: F401
@@ -86,7 +89,8 @@ def _send_reset_email(to_email: str, token: str) -> None:
 # ── Routes ─────────────────────────────────────────────────────────────────────
 
 @router.post("/register", response_model=schemas.UserOut, status_code=201)
-def register(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")  # 5 registrations/min per IP — prevents bulk account creation
+def register(request: Request, user_in: schemas.UserCreate, db: Session = Depends(get_db)):
     existing = db.query(models.User).filter(models.User.email == user_in.email).first()
     if existing:
         raise HTTPException(
@@ -116,7 +120,8 @@ def register(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=schemas.Token)
-def login(user_in: schemas.UserCreate, db: Session = Depends(get_db)):
+@limiter.limit("10/minute")  # 10 attempts/min per IP — brute-force protection on login
+def login(request: Request, user_in: schemas.UserCreate, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.email == user_in.email).first()
     if not user or not auth.verify_password(user_in.password, user.hashed_password):
         raise HTTPException(
@@ -213,7 +218,8 @@ def get_dashboard(
 
 
 @router.post("/forgot-password", response_model=schemas.ForgotPasswordResponse)
-def forgot_password(req: schemas.ForgotPasswordRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")  # 5/min per IP — prevents email flooding / enumeration
+def forgot_password(request: Request, req: schemas.ForgotPasswordRequest, db: Session = Depends(get_db)):
     user = db.query(models.User).filter(models.User.email == req.email).first()
     if user:
         token_str = secrets.token_urlsafe(32)
@@ -232,7 +238,8 @@ def forgot_password(req: schemas.ForgotPasswordRequest, db: Session = Depends(ge
 
 
 @router.post("/reset-password")
-def reset_password(req: schemas.ResetPasswordRequest, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")  # 5/min per IP — prevents token brute-forcing
+def reset_password(request: Request, req: schemas.ResetPasswordRequest, db: Session = Depends(get_db)):
     record = db.query(models.PasswordResetToken).filter(
         models.PasswordResetToken.token == req.token,
         models.PasswordResetToken.used == False,

@@ -3,12 +3,16 @@ load_dotenv()
 
 import logging
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, JSONResponse
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 
 import models
 from database import engine, DATABASE_URL
+from limiter import limiter
 from routes import lists, users
 
 logging.basicConfig(level=logging.INFO)
@@ -21,6 +25,24 @@ models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="Tabrador API", version="1.0.0")
 
+# ── Rate limiting ──────────────────────────────────────────────────────────────
+# Global default: 100 req/min per IP (see limiter.py).
+# Auth endpoints override this with stricter per-endpoint limits in routes/users.py.
+# To change any limit, update the @limiter.limit() decorator on the endpoint
+# or change default_limits in limiter.py.
+
+app.state.limiter = limiter
+app.add_middleware(SlowAPIMiddleware)
+
+async def _rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
+    return JSONResponse(
+        status_code=429,
+        content={"error": "Too many requests. Please try again in a moment."},
+    )
+
+app.add_exception_handler(RateLimitExceeded, _rate_limit_handler)
+
+# ── CORS ───────────────────────────────────────────────────────────────────────
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
