@@ -68,18 +68,14 @@ _RESET_EMAIL_HTML = """\
               This link expires in&nbsp;1&nbsp;hour.
             </p>
             <!-- CTA button -->
-            <table cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
-              <tr>
-                <td style="background:#1E3A8A;border-radius:8px;">
-                  <a href="RESET_LINK" target="_blank"
-                     style="display:inline-block;padding:14px 28px;font-size:14px;
-                            font-weight:600;color:#FFFFFF;text-decoration:none;
-                            letter-spacing:0.01em;">
-                    Reset my password &rarr;
-                  </a>
-                </td>
-              </tr>
-            </table>
+            <p style="margin:0 0 24px;">
+              <a href="RESET_LINK" target="_blank"
+                 style="background-color:#1E3A8A;color:#FFFFFF;padding:14px 28px;
+                        text-decoration:none;border-radius:8px;display:inline-block;
+                        font-size:14px;font-weight:600;letter-spacing:0.01em;">
+                Reset my password &rarr;
+              </a>
+            </p>
             <!-- Fallback link -->
             <p style="margin:0 0 6px;font-size:12px;color:#8EAAD8;line-height:1.5;">
               If the button doesn&rsquo;t work, paste this link into your browser:
@@ -125,11 +121,18 @@ def _send_reset_email(to_email: str, token: str) -> None:
     try:
         import resend
         resend.api_key = api_key
+        plain = (
+            f"Reset your Tabrador password\n\n"
+            f"Click the link below to set a new password. It expires in 1 hour.\n\n"
+            f"{reset_link}\n\n"
+            f"If you didn't request this, you can ignore this email."
+        )
         resend.Emails.send({
             "from":    "Tabrador <hello@tabrador.app>",
             "to":      [to_email],
             "subject": "Reset your Tabrador password",
             "html":    html,
+            "text":    plain,
         })
         _log.info("Reset email sent to %s", to_email)
     except Exception as exc:
