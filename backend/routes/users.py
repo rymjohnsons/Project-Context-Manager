@@ -1,9 +1,6 @@
-import json
 import logging
 import os
 import secrets
-import urllib.error
-import urllib.request
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -102,43 +99,25 @@ _RESET_EMAIL_HTML = """\
 
 
 def _send_reset_email(to_email: str, token: str) -> None:
-    """Send a password-reset email via Resend. Logs errors, never raises."""
+    """Send a password-reset email via the Resend SDK. Logs errors, never raises."""
     api_key = os.environ.get("RESEND_API_KEY")
     if not api_key:
         _log.warning("RESEND_API_KEY not set — skipping password-reset email to %s", to_email)
         return
 
-    from_addr = "hello@tabrador.app"
     reset_link = f"{_APP_URL}/reset-password?token={token}"
     html = _RESET_EMAIL_HTML.replace("RESET_LINK", reset_link)
 
-    payload = json.dumps({
-        "from": f"Tabrador <{from_addr}>",
-        "to": [to_email],
-        "subject": "Reset your Tabrador password",
-        "html": html,
-    }).encode()
-
-    req = urllib.request.Request(
-        "https://api.resend.com/emails",
-        data=payload,
-        headers={
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-        },
-        method="POST",
-    )
-
-    _log.info(
-        "Sending reset email — from: %s  to: %s  endpoint: https://api.resend.com/emails",
-        from_addr, to_email,
-    )
     try:
-        with urllib.request.urlopen(req, timeout=10) as resp:
-            _log.info("Resend accepted email for %s (HTTP %s)", to_email, resp.status)
-    except urllib.error.HTTPError as exc:
-        body = exc.read(512).decode("utf-8", errors="ignore")
-        _log.error("Resend returned HTTP %s for %s: %s", exc.code, to_email, body)
+        import resend
+        resend.api_key = api_key
+        resend.Emails.send({
+            "from":    "Tabrador <hello@tabrador.app>",
+            "to":      [to_email],
+            "subject": "Reset your Tabrador password",
+            "html":    html,
+        })
+        _log.info("Reset email sent to %s", to_email)
     except Exception as exc:
         _log.error("Failed to send reset email to %s: %s", to_email, exc)
 
