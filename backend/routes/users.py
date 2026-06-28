@@ -217,6 +217,45 @@ def get_dashboard(
     )
 
 
+@router.patch("/me/password")
+@limiter.limit("5/minute")  # prevent brute-forcing current password
+def change_password(
+    request:      Request,
+    data:         schemas.PasswordChange,
+    db:           Session     = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    if not auth.verify_password(data.current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Current password is incorrect.")
+    current_user.hashed_password = auth.hash_password(data.new_password)
+    db.commit()
+    return {"message": "Password updated successfully."}
+
+
+@router.delete("/me", status_code=204)
+@limiter.limit("3/minute")  # very strict — account deletion is irreversible
+def delete_account(
+    request:      Request,
+    db:           Session     = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    uid = current_user.id
+
+    # Null out added_by_id on URLs the user added to other people's workspaces
+    db.query(models.Url).filter(models.Url.added_by_id == uid).update({"added_by_id": None})
+
+    # Remove workspace shares (as sharer and as recipient — two separate queries)
+    db.query(models.WorkspaceShare).filter(models.WorkspaceShare.shared_by_id == uid).delete()
+    db.query(models.WorkspaceShare).filter(models.WorkspaceShare.recipient_id  == uid).delete()
+
+    # Remove password reset tokens
+    db.query(models.PasswordResetToken).filter(models.PasswordResetToken.user_id == uid).delete()
+
+    # Delete the user — cascades to their lists and URLs
+    db.delete(current_user)
+    db.commit()
+
+
 @router.post("/forgot-password", response_model=schemas.ForgotPasswordResponse)
 @limiter.limit("5/minute")  # 5/min per IP — prevents email flooding / enumeration
 def forgot_password(request: Request, req: schemas.ForgotPasswordRequest, db: Session = Depends(get_db)):

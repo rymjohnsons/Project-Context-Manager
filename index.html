@@ -649,6 +649,45 @@
     }
     .invite-perm-select { min-width: 88px; }
     .share-perm-select  { min-width: 88px; }
+
+    /* ── Account Settings view ── */
+    .account-settings-view {
+      flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 2rem 2.5rem;
+    }
+    .account-settings-view.hidden { display: none; }
+    .settings-section {
+      background: #FFFFFF; border: 1px solid #C5D8F0; border-radius: 10px;
+      padding: 1.5rem; margin-bottom: 1.25rem; max-width: 540px;
+    }
+    .settings-section-title {
+      font-size: 0.75rem; font-weight: 700; color: #0F1E4A;
+      text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 1rem;
+    }
+    .settings-row {
+      display: flex; align-items: baseline; gap: 1rem;
+      padding: 0.55rem 0; border-bottom: 1px solid #F4F1EA;
+    }
+    .settings-row:last-child { border-bottom: none; }
+    .settings-label { font-size: 0.78rem; color: #8EAAD8; min-width: 110px; flex-shrink: 0; }
+    .settings-value { font-size: 0.85rem; color: #0F1E4A; }
+    .settings-form { display: flex; flex-direction: column; gap: 0.6rem; }
+    .settings-inline-msg {
+      font-size: 0.82rem; padding: 0.5rem 0.75rem; border-radius: 6px; margin-bottom: 0.5rem;
+    }
+    .settings-inline-msg.hidden { display: none !important; }
+    .settings-inline-msg--success { background: rgba(5,150,105,0.08); border: 1px solid #6ee7b7; color: #047857; }
+    .settings-inline-msg--error   { background: rgba(220,38,38,0.08); border: 1px solid #fca5a5; color: #dc2626; }
+    .settings-danger { border-color: #fca5a5; }
+    .settings-danger-title { color: #dc2626; }
+    .settings-danger-desc { font-size: 0.83rem; color: #b91c1c; line-height: 1.6; margin-bottom: 1rem; }
+    .settings-delete-confirm { margin-top: 0.9rem; }
+    .btn-danger {
+      background: #dc2626; color: white; border: none; border-radius: 6px;
+      padding: 0.5rem 1.1rem; font-size: 0.875rem; font-weight: 500; cursor: pointer;
+      font-family: inherit; transition: background 0.15s;
+    }
+    .btn-danger:hover:not(:disabled) { background: #b91c1c; }
+    .btn-danger:disabled { opacity: 0.55; cursor: default; }
   </style>
 </head>
 <body>
@@ -785,8 +824,7 @@
     <div class="sidebar-footer">
       <!-- TERMINOLOGY: "Capture Current Session" was "Snapshot Tabs" -->
       <button id="snapshot-btn" class="sidebar-footer-btn snapshot">⊞ Capture Session</button>
-      <div class="sidebar-placeholder">⚙ Account Settings</div>
-      <div class="sidebar-placeholder">👤 Account Management</div>
+      <button id="sidebar-account-settings" class="sidebar-footer-btn">⚙ Account Settings</button>
       <div class="sidebar-user">
         <span id="user-email" class="user-email-label"></span>
         <button id="logout-btn" class="btn-logout">Log out</button>
@@ -882,6 +920,58 @@
         <div class="shared-out-sub">Workspaces others have shared with you</div>
       </div>
       <div id="shared-with-me-grid" class="workspace-grid"></div>
+    </div>
+
+    <!-- Account Settings view -->
+    <div id="account-settings-view" class="account-settings-view hidden">
+      <div class="shared-out-header">
+        <div class="shared-out-title">Account Settings</div>
+        <div class="shared-out-sub">Manage your profile, password, and account</div>
+      </div>
+
+      <!-- Profile -->
+      <div class="settings-section">
+        <div class="settings-section-title">Profile</div>
+        <div class="settings-row">
+          <span class="settings-label">Email</span>
+          <span class="settings-value" id="settings-email">—</span>
+        </div>
+        <div class="settings-row">
+          <span class="settings-label">Work role</span>
+          <span class="settings-value" id="settings-work-type">—</span>
+        </div>
+        <div class="settings-row">
+          <span class="settings-label">Member since</span>
+          <span class="settings-value" id="settings-created-at">—</span>
+        </div>
+      </div>
+
+      <!-- Change Password -->
+      <div class="settings-section">
+        <div class="settings-section-title">Change Password</div>
+        <div id="settings-pw-msg" class="settings-inline-msg hidden"></div>
+        <div class="settings-form">
+          <input type="password" id="settings-current-pw" placeholder="Current password" />
+          <input type="password" id="settings-new-pw"     placeholder="New password"      autocomplete="new-password" />
+          <input type="password" id="settings-confirm-pw" placeholder="Confirm new password" autocomplete="new-password" />
+          <button id="settings-pw-btn" class="btn-primary" style="align-self:flex-start;">Save Password</button>
+        </div>
+      </div>
+
+      <!-- Danger Zone -->
+      <div class="settings-section settings-danger">
+        <div class="settings-section-title settings-danger-title">Danger Zone</div>
+        <p class="settings-danger-desc">Deleting your account is permanent and cannot be undone. All your workspaces and resources will be deleted.</p>
+        <button id="settings-delete-btn" class="btn-danger">Delete My Account</button>
+        <div id="settings-delete-confirm" class="settings-delete-confirm hidden">
+          <p style="font-size:0.82rem;color:#b91c1c;margin-bottom:0.6rem;">Type <strong>DELETE</strong> in capitals to confirm:</p>
+          <div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">
+            <input type="text" id="settings-delete-input" placeholder="DELETE" style="max-width:155px;" />
+            <button id="settings-delete-confirm-btn" class="btn-danger">Confirm Delete</button>
+            <button id="settings-delete-cancel-btn" class="btn-secondary" style="font-size:0.8rem;padding:0.4rem 0.8rem;">Cancel</button>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- SHARING: Shared Out management view -->
@@ -1505,6 +1595,87 @@ function renderSharedOut() {
   });
 }
 
+// ── Account Settings ─────────────────────────────────────────────────────────
+
+const _WORK_TYPE_LABELS = {
+  independent_consultant: 'Independent consultant',
+  agency_firm:            'Agency or firm',
+  internal_pm:            'Internal project manager',
+  it_technical:           'IT or technical team',
+  other:                  'Other',
+};
+
+function showAccountSettings() {
+  currentView    = 'account-settings';
+  selectedListId = null;
+  document.querySelectorAll('.nav-item--active').forEach(el => el.classList.remove('nav-item--active'));
+  document.getElementById('sidebar-account-settings').classList.add('nav-item--active');
+  renderDetail();
+  loadAccountSettings();
+}
+
+async function loadAccountSettings() {
+  try {
+    const user = await apiFetch('/users/me');
+    document.getElementById('settings-email').textContent      = user.email;
+    document.getElementById('settings-work-type').textContent  = _WORK_TYPE_LABELS[user.work_type] || user.work_type || 'Not set';
+    const d = new Date(user.created_at);
+    document.getElementById('settings-created-at').textContent =
+      d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+  } catch { /* silent */ }
+}
+
+async function savePassword() {
+  const current = document.getElementById('settings-current-pw').value;
+  const next    = document.getElementById('settings-new-pw').value;
+  const confirm = document.getElementById('settings-confirm-pw').value;
+  const btn     = document.getElementById('settings-pw-btn');
+
+  _setSettingsMsg('', '');
+  if (!current || !next)  { _setSettingsMsg('Enter your current and new password.', 'error'); return; }
+  if (next !== confirm)   { _setSettingsMsg('New passwords do not match.', 'error'); return; }
+  if (next.length < 8)    { _setSettingsMsg('New password must be at least 8 characters.', 'error'); return; }
+
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    await apiFetch('/users/me/password', {
+      method: 'PATCH', body: JSON.stringify({ current_password: current, new_password: next }),
+    });
+    _setSettingsMsg('Password updated successfully.', 'success');
+    document.getElementById('settings-current-pw').value = '';
+    document.getElementById('settings-new-pw').value     = '';
+    document.getElementById('settings-confirm-pw').value = '';
+  } catch (e) {
+    _setSettingsMsg(e.message, 'error');
+  } finally {
+    btn.disabled = false; btn.textContent = 'Save Password';
+  }
+}
+
+function _setSettingsMsg(msg, type) {
+  const el = document.getElementById('settings-pw-msg');
+  el.textContent = msg;
+  el.className   = msg ? `settings-inline-msg settings-inline-msg--${type}` : 'settings-inline-msg hidden';
+}
+
+async function deleteAccount() {
+  const input = document.getElementById('settings-delete-input').value.trim();
+  if (input !== 'DELETE') { showErrorToast('Type DELETE in capitals to confirm.'); return; }
+  const btn = document.getElementById('settings-delete-confirm-btn');
+  btn.disabled = true; btn.textContent = 'Deleting…';
+  try {
+    await apiFetch('/users/me', { method: 'DELETE' });
+    clearToken();
+    currentLists   = [];
+    selectedListId = null;
+    currentView    = 'dashboard';
+    showAuthScreen();
+  } catch (e) {
+    showErrorToast(e.message);
+    btn.disabled = false; btn.textContent = 'Confirm Delete';
+  }
+}
+
 // ── Dashboard ─────────────────────────────────────────────────────────────────
 
 function formatTimeSaved(totalSeconds) {
@@ -1868,7 +2039,7 @@ function renderSidebar() {
 // All top-level content panels — renderDetail always clears then shows only the right one
 const _ALL_VIEWS = [
   'dashboard', 'shared-out-view', 'my-workspaces-view',
-  'shared-with-me-view', 'welcome-state', 'list-detail',
+  'shared-with-me-view', 'account-settings-view', 'welcome-state', 'list-detail',
 ];
 function _hideAllViews() {
   _ALL_VIEWS.forEach(id => document.getElementById(id).classList.add('hidden'));
@@ -1943,6 +2114,10 @@ function renderDetail() {
   if (currentView === 'shared-with-me') {
     document.getElementById('shared-with-me-view').classList.remove('hidden');
     renderSharedWithMe();
+    return;
+  }
+  if (currentView === 'account-settings') {
+    document.getElementById('account-settings-view').classList.remove('hidden');
     return;
   }
 
@@ -2237,6 +2412,27 @@ document.querySelectorAll('.onboarding-option').forEach(btn => {
   btn.addEventListener('click', () => completeOnboarding(btn.dataset.type));
 });
 document.getElementById('onboarding-skip').addEventListener('click', () => completeOnboarding(null));
+
+// ACCOUNT SETTINGS
+document.getElementById('sidebar-account-settings').addEventListener('click', showAccountSettings);
+document.getElementById('settings-pw-btn').addEventListener('click', savePassword);
+document.getElementById('settings-confirm-pw').addEventListener('keydown', e => {
+  if (e.key === 'Enter') savePassword();
+});
+document.getElementById('settings-delete-btn').addEventListener('click', () => {
+  document.getElementById('settings-delete-btn').classList.add('hidden');
+  document.getElementById('settings-delete-confirm').classList.remove('hidden');
+  document.getElementById('settings-delete-input').focus();
+});
+document.getElementById('settings-delete-cancel-btn').addEventListener('click', () => {
+  document.getElementById('settings-delete-confirm').classList.add('hidden');
+  document.getElementById('settings-delete-btn').classList.remove('hidden');
+  document.getElementById('settings-delete-input').value = '';
+});
+document.getElementById('settings-delete-confirm-btn').addEventListener('click', deleteAccount);
+document.getElementById('settings-delete-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') deleteAccount();
+});
 
 // DASHBOARD: sidebar home link + metric tiles + empty-state create button
 document.getElementById('sidebar-home').addEventListener('click', showDashboard);

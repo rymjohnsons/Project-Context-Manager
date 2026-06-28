@@ -74,6 +74,11 @@ class OnboardingUpdate(BaseModel):
     work_type: str
 
 
+class PasswordChange(BaseModel):
+    current_password: str
+    new_password:     str
+
+
 # ── Auth schemas ───────────────────────────────────────────────────────────────
 
 class Token(BaseModel):
