@@ -122,6 +122,19 @@ def register(request: Request, user_in: schemas.UserCreate, db: Session = Depend
 @router.post("/login", response_model=schemas.Token)
 @limiter.limit("10/minute")  # 10 attempts/min per IP — brute-force protection on login
 def login(request: Request, user_in: schemas.UserCreate, db: Session = Depends(get_db)):
+    # ── Rate-limit diagnostics ─────────────────────────────────────────────────
+    # Logs the IP key slowapi uses, plus raw proxy headers, so we can confirm
+    # Railway is setting X-Forwarded-For and the limiter sees real client IPs.
+    # Remove this block once rate limiting is confirmed working in production.
+    _xff        = request.headers.get("X-Forwarded-For", "<not set>")
+    _client     = request.client.host if request.client else "<none>"
+    _rate_key   = _xff.split(",")[0].strip() if _xff.strip() != "<not set>" else _client
+    _log.info(
+        "LOGIN attempt | rate-key=%s | X-Forwarded-For=%s | client.host=%s",
+        _rate_key, _xff, _client,
+    )
+    # ──────────────────────────────────────────────────────────────────────────
+
     user = db.query(models.User).filter(models.User.email == user_in.email).first()
     if not user or not auth.verify_password(user_in.password, user.hashed_password):
         raise HTTPException(

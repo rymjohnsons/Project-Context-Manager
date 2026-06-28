@@ -229,6 +229,11 @@
     /* Add URL row */
     .detail-add-row { display: flex; gap: 0.5rem; flex-shrink: 0; }
     .detail-add-row input { flex: 1; }
+    .detail-add-error {
+      font-size: 0.75rem; color: #dc2626; flex-shrink: 0;
+      padding: 0.2rem 0; margin-top: -0.1rem;
+    }
+    .detail-add-error.hidden { display: none; }
 
     /* ── Inputs (global) ── */
     input[type="text"],
@@ -1102,6 +1107,7 @@
         <input type="text" id="detail-add-url" placeholder="Paste a resource URL and press Enter…" />
         <button id="detail-add-btn" class="btn-primary">Add Resource</button>
       </div>
+      <p id="detail-add-error" class="detail-add-error hidden"></p>
     </div>
 
   </main>
@@ -1298,7 +1304,9 @@ async function submitAuth() {
     setAuthError(e.message);
   } finally {
     btn.disabled = false;
-    setAuthMode(authMode);
+    // Restore button text directly — do NOT call setAuthMode() here because
+    // setAuthMode always calls setAuthError('') which wipes the error message.
+    btn.textContent = authMode === 'login' ? 'Log In' : 'Create Account';
   }
 }
 
@@ -1512,8 +1520,18 @@ function normaliseUrl(raw) {
 }
 
 async function addUrl(listId, inputEl) {
-  const url = normaliseUrl(inputEl.value);
-  if (!url) return;
+  const url    = normaliseUrl(inputEl.value);
+  const errEl  = document.getElementById('detail-add-error');
+
+  if (!url) {
+    errEl.textContent = 'Please enter a URL.';
+    errEl.classList.remove('hidden');
+    inputEl.focus();
+    return;
+  }
+  // normaliseUrl already prepends https:// if no scheme — no further format check needed
+  errEl.classList.add('hidden');
+
   try {
     await apiFetch(`/lists/${listId}/urls`, { method: 'POST', body: JSON.stringify({ url }) });
     inputEl.value = '';
