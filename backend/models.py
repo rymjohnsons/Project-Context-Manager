@@ -21,6 +21,14 @@ class User(Base):
     # DASHBOARD: cumulative count of tabs opened via Start Working
     tabs_opened     = Column(Integer, default=0, nullable=False)
 
+    # BILLING: subscription state
+    plan                   = Column(String, default="free", nullable=False)
+    trial_ends_at          = Column(DateTime(timezone=True), nullable=True)
+    stripe_customer_id     = Column(String, nullable=True)
+    stripe_subscription_id = Column(String, nullable=True)
+    comped                 = Column(Boolean, default=False, nullable=False)
+    locked_price           = Column(String, nullable=True)
+
     lists = relationship("List", back_populates="owner", cascade="all, delete-orphan")
 
 

@@ -521,6 +521,25 @@
       padding: 0.5rem 0; margin-bottom: 2rem;
     }
 
+    /* ── Trial / billing banner ── */
+    .trial-banner {
+      background: #1E3A8A; color: #F4F1EA;
+      padding: 0.7rem 1.5rem;
+      display: flex; align-items: center; gap: 1rem; flex-shrink: 0;
+      font-size: 0.82rem; line-height: 1.45; flex-wrap: wrap;
+    }
+    .trial-banner.hidden { display: none; }
+    .trial-banner-text { flex: 1; min-width: 0; }
+    .trial-banner-text strong { color: #C5D8F0; }
+    .trial-upgrade-btn {
+      background: #F4F1EA; color: #1E3A8A; border: none; border-radius: 6px;
+      padding: 0.35rem 0.9rem; font-size: 0.8rem; font-weight: 600;
+      cursor: pointer; font-family: inherit; flex-shrink: 0; white-space: nowrap;
+      transition: background 0.12s;
+    }
+    .trial-upgrade-btn:hover:not(:disabled) { background: #C5D8F0; }
+    .trial-upgrade-btn:disabled { opacity: 0.7; cursor: default; }
+
     /* ── Empty states ── */
     .empty-state-block {
       display: flex; flex-direction: column; align-items: center;
@@ -891,6 +910,12 @@
 
   <!-- Main content -->
   <main class="main-content">
+
+    <!-- BILLING: trial / upgrade banner — shown above all content views -->
+    <div id="trial-banner" class="trial-banner hidden">
+      <span class="trial-banner-text" id="trial-banner-text"></span>
+      <button class="trial-upgrade-btn" id="trial-upgrade-btn">Upgrade to Pro</button>
+    </div>
 
     <div id="import-banner" class="import-banner hidden" role="alert">
       <div class="import-banner-text">
@@ -1317,12 +1342,14 @@ async function submitAuth() {
     });
     setToken(access_token);
     const user = await apiFetch('/users/me');
+    currentUser = user; // BILLING: store for trial banner checks
     // ONBOARDING: new accounts go to role question before the app
     if (isNewAccount) {
       document.getElementById('user-email').textContent = user.email;
       showOnboarding();
     } else {
       showApp(user.email);
+      showTrialBanner();
       await render();
       await loadSharedWorkspaces();
       showDashboard();
@@ -1502,6 +1529,7 @@ async function submitReset() {
 
 // ── App state ─────────────────────────────────────────────────────────────────
 
+let currentUser       = null; // BILLING: populated from /users/me on boot
 let currentLists      = [];
 let selectedListId    = null;
 let currentView       = 'dashboard'; // 'dashboard' | 'workspace'
@@ -1696,6 +1724,61 @@ function _showDetailSkeleton() {
   document.getElementById('detail-url-list').innerHTML = [0,1,2,3].map(() =>
     `<li class="skeleton" style="height:52px;border-radius:8px;flex-shrink:0;"></li>`
   ).join('');
+}
+
+// ── Billing / trial banner ────────────────────────────────────────────────────
+
+function _isPro(user) {
+  if (!user) return false;
+  if (user.comped)         return true;
+  if (user.plan === 'pro') return true;
+  if (user.trial_ends_at) {
+    return new Date(user.trial_ends_at) > new Date();
+  }
+  return false;
+}
+
+function showTrialBanner() {
+  const bannerEl  = document.getElementById('trial-banner');
+  const textEl    = document.getElementById('trial-banner-text');
+  const upgradeEl = document.getElementById('trial-upgrade-btn');
+  const user      = currentUser;
+
+  if (!user || _isPro(user)) {
+    bannerEl.classList.add('hidden');
+    return;
+  }
+
+  bannerEl.classList.remove('hidden');
+
+  if (user.trial_ends_at) {
+    const daysLeft = Math.ceil((new Date(user.trial_ends_at) - new Date()) / 864e5);
+    if (daysLeft > 0) {
+      textEl.innerHTML =
+        `<strong>Free trial:</strong> ${daysLeft} day${daysLeft !== 1 ? 's' : ''} remaining. ` +
+        `Upgrade to Pro to keep full access.`;
+      upgradeEl.classList.remove('hidden');
+      return;
+    }
+  }
+
+  // Trial expired, free tier
+  textEl.innerHTML =
+    `<strong>Trial ended.</strong> You're on the free tier — up to 3 workspaces. ` +
+    `Upgrade to Pro for unlimited access.`;
+  upgradeEl.classList.remove('hidden');
+}
+
+async function startUpgrade() {
+  const btn = document.getElementById('trial-upgrade-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Redirecting…'; }
+  try {
+    const { url } = await apiFetch('/billing/create-checkout-session', { method: 'POST' });
+    window.location.href = url;
+  } catch (e) {
+    showErrorToast(e.message || 'Could not start checkout — please try again.');
+    if (btn) { btn.disabled = false; btn.textContent = 'Upgrade to Pro'; }
+  }
 }
 
 // ── Shared Out view ──────────────────────────────────────────────────────────
@@ -2678,6 +2761,9 @@ document.getElementById('shared-out-list').addEventListener('click', async e => 
   if (wsName) selectList(parseInt(wsName.dataset.wsId));
 });
 
+// BILLING: upgrade button in trial banner
+document.getElementById('trial-upgrade-btn').addEventListener('click', startUpgrade);
+
 // TEMPLATE: template picker
 document.getElementById('template-btn').addEventListener('click', openTemplateModal);
 document.getElementById('template-cancel').addEventListener('click', closeTemplateModal);
@@ -2712,8 +2798,10 @@ async function boot() {
 
   try {
     const user = await apiFetch('/users/me');
+    currentUser = user;             // BILLING: store for trial banner checks
     showApp(user.email);
     showSidebarSkeleton();          // show skeleton items in sidebar
+    showTrialBanner();              // show trial/upgrade banner if applicable
     bootEl.classList.add('hidden'); // user now sees app with skeleton
     await render();                 // lists load → skeleton replaced with real items
     await loadSharedWorkspaces();

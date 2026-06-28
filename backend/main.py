@@ -13,7 +13,7 @@ from slowapi.middleware import SlowAPIMiddleware
 import models
 from database import engine, DATABASE_URL
 from limiter import limiter
-from routes import lists, users
+from routes import billing, lists, users
 
 logging.basicConfig(level=logging.INFO)
 _log = logging.getLogger(__name__)
@@ -58,6 +58,7 @@ app.add_middleware(
 
 app.include_router(users.router)
 app.include_router(lists.router)
+app.include_router(billing.router)
 
 
 @app.get("/app", tags=["frontend"])

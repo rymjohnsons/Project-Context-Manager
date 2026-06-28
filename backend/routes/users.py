@@ -4,7 +4,7 @@ import re
 import secrets
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 # Matches "something@something.tld" — rejects "ryan@", "notanemail", etc.
 _EMAIL_RE = re.compile(r'^[^\s@]+@[^\s@]+\.[^\s@]{2,}$')
@@ -117,6 +117,7 @@ def register(request: Request, user_in: schemas.UserCreate, db: Session = Depend
     user = models.User(
         email=user_in.email,
         hashed_password=auth.hash_password(user_in.password),
+        trial_ends_at=datetime.now(timezone.utc) + timedelta(days=30),  # BILLING: 30-day trial
     )
     db.add(user)
     db.commit()

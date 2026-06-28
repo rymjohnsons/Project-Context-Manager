@@ -65,6 +65,10 @@ class UserOut(BaseModel):
     created_at: datetime
     # ONBOARDING: work role chosen during first-login flow
     work_type:  str | None = None
+    # BILLING: subscription state exposed to the frontend for trial banners
+    plan:                   str      = "free"
+    trial_ends_at:          datetime | None = None
+    comped:                 bool     = False
 
     model_config = {"from_attributes": True}
 

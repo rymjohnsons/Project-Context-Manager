@@ -11,6 +11,9 @@ import schemas
 import auth
 from database import get_db, SessionLocal
 from models import utcnow
+from billing import is_pro
+
+FREE_TIER_WORKSPACE_LIMIT = 3
 
 router = APIRouter(prefix="/lists", tags=["lists"])
 
@@ -271,6 +274,19 @@ def create_list(
     db:           Session     = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ):
+    # BILLING: free-tier users are capped at 3 workspaces
+    if not is_pro(current_user):
+        existing = db.query(models.List)\
+                     .filter(models.List.owner_id == current_user.id)\
+                     .count()
+        if existing >= FREE_TIER_WORKSPACE_LIMIT:
+            raise HTTPException(
+                status_code=403,
+                detail=(
+                    "You've reached the free tier limit of 3 workspaces. "
+                    "Upgrade to Tabrador Pro for unlimited workspaces."
+                ),
+            )
     lst = models.List(name=list_in.name.strip(), owner_id=current_user.id)
     db.add(lst)
     db.commit()
