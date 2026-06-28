@@ -30,19 +30,34 @@ async function clearToken() {
 // ── API fetch wrapper ──────────────────────────────────────────────────────────
 
 async function apiFetch(path, options = {}) {
-  const res = await fetch(API_BASE + path, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(_token ? { 'Authorization': `Bearer ${_token}` } : {}),
-      ...(options.headers || {}),
-    },
-  });
+  let res;
+  try {
+    res = await fetch(API_BASE + path, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(_token ? { 'Authorization': `Bearer ${_token}` } : {}),
+        ...(options.headers || {}),
+      },
+    });
+  } catch {
+    throw new Error('Connection problem — please check your internet and try again.');
+  }
 
   if (res.status === 401) {
     await clearToken();
     showLoginScreen();
-    throw new Error('Session expired — please log in again.');
+    // Show the message on the login screen (which is now visible)
+    const errEl = document.getElementById('login-error');
+    if (errEl) {
+      errEl.textContent = 'Your session expired — please log in again.';
+      errEl.classList.remove('hidden');
+    }
+    throw new Error('Your session expired — please log in again.');
+  }
+
+  if (res.status === 429) {
+    throw new Error('Too many attempts — please wait a moment and try again.');
   }
 
   if (res.status === 204) return null;
@@ -51,7 +66,7 @@ async function apiFetch(path, options = {}) {
     const err = await res.json().catch(() => ({}));
     const detail = Array.isArray(err.detail)
       ? err.detail.map(e => e.msg).join(', ')
-      : (err.detail || `Request failed (${res.status})`);
+      : (err.detail || 'Something went wrong — please try again.');
     throw new Error(detail);
   }
 

@@ -1106,21 +1106,37 @@ function clearToken() { localStorage.removeItem('pcm_token'); }
 
 async function apiFetch(path, options = {}) {
   const token = getToken();
-  const res = await fetch(API_BASE + path, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-      ...(options.headers || {}),
-    },
-  });
+  let res;
+  try {
+    res = await fetch(API_BASE + path, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        ...(options.headers || {}),
+      },
+    });
+  } catch {
+    // fetch() itself threw — server unreachable or no internet
+    throw new Error('Connection problem — please check your internet and try again.');
+  }
 
   if (res.status === 401) {
     const hadToken = !!getToken();
     clearToken();
-    if (hadToken) showAuthScreen();
+    if (hadToken) {
+      // Show the session-expired message on the auth screen before navigating
+      showAuthScreen();
+      setAuthError('Your session expired — please log in again.');
+    }
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || (hadToken ? 'Session expired — please log in again.' : 'Incorrect email or password.'));
+    throw new Error(hadToken
+      ? 'Your session expired — please log in again.'
+      : (err.detail || 'Incorrect email or password.'));
+  }
+
+  if (res.status === 429) {
+    throw new Error('Too many attempts — please wait a moment and try again.');
   }
 
   if (res.status === 204) return null;
@@ -1129,7 +1145,7 @@ async function apiFetch(path, options = {}) {
     const err = await res.json().catch(() => ({}));
     const detail = Array.isArray(err.detail)
       ? err.detail.map(e => e.msg).join(', ')
-      : (err.detail || `Request failed (${res.status})`);
+      : (err.detail || 'Something went wrong — please try again. If the problem continues, contact hello@tabrador.app.');
     throw new Error(detail);
   }
 
@@ -1783,6 +1799,20 @@ async function openAll() {
   }
 
   if (total > 10) closeBtn.textContent = 'Wrap Up';
+
+  // Detect popup blocking — if the browser silently refused tabs, warn the user
+  const opened = (trackedWindows[selectedListId] || []).length;
+  if (opened === 0 && total > 0) {
+    showErrorToast(
+      'No tabs opened — your browser may be blocking popups. ' +
+      'Allow popups for tabrador.app in your browser settings and try again.'
+    );
+  } else if (opened < total) {
+    showErrorToast(
+      `${total - opened} tab${total - opened !== 1 ? 's' : ''} couldn\'t be opened — ` +
+      'your browser may be blocking some popups. Check your browser settings.'
+    );
+  }
 }
 
 async function toggleUrlStar(listId, urlId, currentStarred) {
@@ -2248,7 +2278,12 @@ async function selectList(id) {
 async function render() {
   try {
     currentLists = await apiFetch('/lists');
-  } catch {
+  } catch (e) {
+    // Only surface the error if the user is actively looking at a workspace —
+    // silent re-render failures (e.g. background refreshes) are acceptable.
+    if (currentView === 'workspace' && selectedListId) {
+      showErrorToast(e.message || 'Couldn\'t load your workspaces — please refresh.');
+    }
     return;
   }
   // If a shared (non-owned) workspace is currently open, refresh its cached data
