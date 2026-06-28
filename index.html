@@ -1,11 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" style="background:#1E3A8A">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- BRANDING: app renamed from "Project Context Manager" to "Tabrador" -->
   <title>Tabrador — Fetch your tabs</title>
   <style>
+    /* Prevents white flash before boot-loader paints — matches navy brand colour */
+    html { background: #1E3A8A; }
+
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
@@ -2659,14 +2662,22 @@ async function boot() {
   try {
     const user = await apiFetch('/users/me');
     showApp(user.email);
-    showSidebarSkeleton();         // show skeleton items in sidebar
+    showSidebarSkeleton();          // show skeleton items in sidebar
     bootEl.classList.add('hidden'); // user now sees app with skeleton
     await render();                 // lists load → skeleton replaced with real items
     await loadSharedWorkspaces();
     showDashboard();                // triggers loadDashboard() which shows its own skeleton
     checkShareLink();
   } catch {
+    // apiFetch clears the token on 401 — if it's gone now, the session expired.
+    // Any other failure (network, server) shows a different message.
+    const wasAuthFailure = !getToken();
     showAuthScreen();
+    setAuthError(
+      wasAuthFailure
+        ? 'Your session expired — please log in again.'
+        : 'Connection error — please check your internet and try again.'
+    );
     bootEl.classList.add('hidden');
   }
 }
