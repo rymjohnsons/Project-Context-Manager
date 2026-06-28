@@ -273,5 +273,29 @@ button {
 }
 .dismiss-large-warning-btn:hover { color: #1E3A8A; }
 
+/* ── Skeleton / loading ─────────────────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes spin-ext { to { transform: rotate(360deg); } }
+
+.skeleton-ext {
+  background: linear-gradient(90deg, #E4E0D8 25%, #EDEAE2 50%, #E4E0D8 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.4s ease-in-out infinite;
+  border-radius: 4px;
+  display: block;
+}
+.popup-loading {
+  display: flex; align-items: center; justify-content: center;
+  gap: 0.5rem; padding: 1.25rem 0.75rem; font-size: 12px; color: #8EAAD8;
+}
+.popup-spinner {
+  width: 16px; height: 16px; border-radius: 50%;
+  border: 2px solid #C5D8F0; border-top-color: #1E3A8A;
+  animation: spin-ext 0.75s linear infinite; flex-shrink: 0;
+}
+
 /* ── Utility ────────────────────────────────────────────────────────────── */
 .hidden { display: none !important; }

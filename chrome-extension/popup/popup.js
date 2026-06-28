@@ -251,9 +251,18 @@ function esc(str) {
 // ── Render ─────────────────────────────────────────────────────────────────────
 
 async function render() {
+  // Show loading state while workspaces fetch
+  const container = document.getElementById('lists-container');
+  container.innerHTML = `
+    <div class="popup-loading">
+      <div class="popup-spinner"></div>
+      Loading workspaces…
+    </div>`;
+
   try {
     currentLists = await apiFetch('/lists');
-  } catch {
+  } catch (e) {
+    container.innerHTML = `<p class="empty-state" style="color:#dc2626;">${e.message || 'Couldn\'t load workspaces.'}</p>`;
     return;
   }
 

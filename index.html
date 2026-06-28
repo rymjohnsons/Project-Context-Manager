@@ -650,6 +650,46 @@
     .invite-perm-select { min-width: 88px; }
     .share-perm-select  { min-width: 88px; }
 
+    /* ── Skeleton loaders ── */
+    @keyframes shimmer {
+      0%   { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    @keyframes _spin { to { transform: rotate(360deg); } }
+
+    .skeleton {
+      background: linear-gradient(90deg, #E4E0D8 25%, #EDEAE2 50%, #E4E0D8 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s ease-in-out infinite;
+      border-radius: 6px;
+      display: block;
+    }
+    /* Prevent hover effects on skeleton nav items */
+    .nav-item--skeleton { cursor: default; pointer-events: none; }
+    .nav-item--skeleton:hover { background: transparent; }
+
+    /* Boot loader — fixed overlay shown before session is verified */
+    .boot-loader {
+      position: fixed; inset: 0; background: #F4F1EA;
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; gap: 1.25rem; z-index: 9999;
+      transition: opacity 0.15s;
+    }
+    .boot-loader.hidden { display: none; }
+    .boot-loader-logo {
+      font-size: 1.35rem; font-weight: 700; color: #1E3A8A;
+      letter-spacing: -0.02em; text-align: center;
+    }
+    .boot-loader-logo small {
+      display: block; font-size: 0.68rem; color: #8EAAD8; font-weight: 400;
+      letter-spacing: 0.07em; text-transform: uppercase; margin-top: 3px;
+    }
+    .boot-spinner {
+      width: 28px; height: 28px; border-radius: 50%;
+      border: 3px solid #C5D8F0; border-top-color: #1E3A8A;
+      animation: _spin 0.75s linear infinite;
+    }
+
     /* ── Account Settings view ── */
     .account-settings-view {
       flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; padding: 2rem 2.5rem;
@@ -693,7 +733,16 @@
 <body>
 
 <!-- ── Auth overlay ── -->
-<div id="auth-overlay" class="auth-overlay">
+<!-- Boot loader: shown immediately on page load, hidden after session check -->
+<div id="boot-loader" class="boot-loader">
+  <div class="boot-loader-logo">
+    Tabrador
+    <small>Fetch your tabs</small>
+  </div>
+  <div class="boot-spinner"></div>
+</div>
+
+<div id="auth-overlay" class="auth-overlay hidden">
   <div class="auth-card">
     <!-- BRANDING: app name + tagline -->
     <h1>Tabrador</h1>
@@ -859,6 +908,22 @@
     <!-- DASHBOARD: landing page shown after login -->
     <div id="dashboard" class="dashboard">
 
+      <!-- Skeleton: shown while dashboard data is loading -->
+      <div id="dashboard-skeleton" class="hidden">
+        <div class="skeleton" style="height:130px;border-radius:14px;margin-bottom:2rem;"></div>
+        <div class="skeleton" style="height:11px;width:88px;border-radius:4px;margin-bottom:0.65rem;"></div>
+        <div class="dash-recent-grid" style="margin-bottom:2rem;">
+          <div class="skeleton" style="height:68px;border-radius:10px;"></div>
+          <div class="skeleton" style="height:68px;border-radius:10px;"></div>
+          <div class="skeleton" style="height:68px;border-radius:10px;"></div>
+        </div>
+        <div class="dash-metrics">
+          <div class="skeleton" style="height:88px;border-radius:10px;"></div>
+          <div class="skeleton" style="height:88px;border-radius:10px;"></div>
+          <div class="skeleton" style="height:88px;border-radius:10px;"></div>
+        </div>
+      </div>
+
       <!-- Empty state: shown only when the user has zero workspaces -->
       <div id="dashboard-empty" class="empty-state-block hidden">
         <svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 24 24"
@@ -873,8 +938,8 @@
         <button id="dashboard-create-btn" class="btn-primary" style="padding:0.65rem 1.75rem;font-size:0.9rem;">+ Create your first workspace</button>
       </div>
 
-      <!-- Normal dashboard content: hidden until the user has at least one workspace -->
-      <div id="dashboard-content">
+      <!-- Normal dashboard content -->
+      <div id="dashboard-content" class="hidden">
         <div class="dash-hero">
           <div class="dash-hero-stat" id="dash-time-saved">—</div>
           <div class="dash-hero-label">Time saved opening tabs</div>
@@ -1556,6 +1621,29 @@ function closeInvitePanel() {
   document.getElementById('invite-shares-list').innerHTML = '';
 }
 
+// ── Skeleton / loading helpers ────────────────────────────────────────────────
+
+function showSidebarSkeleton() {
+  const widths = ['72%', '58%', '80%', '63%'];
+  document.getElementById('sidebar-lists').innerHTML = widths.map(w =>
+    `<div class="nav-item nav-item--skeleton">
+       <div class="skeleton" style="height:11px;border-radius:3px;width:${w};"></div>
+     </div>`
+  ).join('');
+}
+
+function _showDetailSkeleton() {
+  _hideAllViews();
+  document.getElementById('list-detail').classList.remove('hidden');
+  document.getElementById('detail-url-table-header').classList.add('hidden');
+  document.getElementById('large-workspace-warning').classList.add('hidden');
+  document.getElementById('detail-list-name').value = '';
+  document.getElementById('detail-url-count').textContent = '';
+  document.getElementById('detail-url-list').innerHTML = [0,1,2,3].map(() =>
+    `<li class="skeleton" style="height:52px;border-radius:8px;flex-shrink:0;"></li>`
+  ).join('');
+}
+
 // ── Shared Out view ──────────────────────────────────────────────────────────
 
 function showSharedOut() {
@@ -1706,21 +1794,22 @@ function formatTimeSaved(totalSeconds) {
 }
 
 async function loadDashboard() {
+  const skeletonEl = document.getElementById('dashboard-skeleton');
+  const emptyEl    = document.getElementById('dashboard-empty');
+  const contentEl  = document.getElementById('dashboard-content');
+
+  skeletonEl.classList.remove('hidden');
+  emptyEl.classList.add('hidden');
+  contentEl.classList.add('hidden');
+
   try {
     const data = await apiFetch('/users/dashboard');
 
-    const emptyEl   = document.getElementById('dashboard-empty');
-    const contentEl = document.getElementById('dashboard-content');
-
     if (data.total_workspaces === 0) {
-      // New user — show the welcome empty state, hide stats/metrics
       emptyEl.classList.remove('hidden');
-      contentEl.classList.add('hidden');
       return;
     }
 
-    // Has workspaces — show normal dashboard content
-    emptyEl.classList.add('hidden');
     contentEl.classList.remove('hidden');
 
     document.getElementById('dash-time-saved').textContent      = formatTimeSaved(data.time_saved_seconds);
@@ -1745,7 +1834,11 @@ async function loadDashboard() {
         recentEl.appendChild(card);
       });
     }
-  } catch { /* dashboard load failures are silent */ }
+  } catch {
+    contentEl.classList.remove('hidden'); // show content area even on error
+  } finally {
+    skeletonEl.classList.add('hidden');
+  }
 }
 
 function showDashboard() {
@@ -2260,6 +2353,7 @@ async function selectList(id) {
   // If this workspace isn't in currentLists (i.e. it's shared with us, not owned),
   // fetch the full data and cache it so renderDetail can find it.
   if (!currentLists.find(l => l.id == id)) {
+    _showDetailSkeleton(); // show skeleton rows while the fetch completes
     try {
       const full = await apiFetch(`/lists/${id}`);
       const idx  = sharedListDetails.findIndex(l => l.id == id);
@@ -2275,12 +2369,14 @@ async function selectList(id) {
   renderDetail();
 }
 
+let _firstRender = true;
+
 async function render() {
   try {
     currentLists = await apiFetch('/lists');
+    _firstRender = false;
   } catch (e) {
-    // Only surface the error if the user is actively looking at a workspace —
-    // silent re-render failures (e.g. background refreshes) are acceptable.
+    _firstRender = false;
     if (currentView === 'workspace' && selectedListId) {
       showErrorToast(e.message || 'Couldn\'t load your workspaces — please refresh.');
     }
@@ -2349,9 +2445,12 @@ document.getElementById('create-list-btn').addEventListener('click', async () =>
   const input = document.getElementById('new-list-name');
   if (!input.value.trim()) return;
   const name = input.value.trim();
+  const btn  = document.getElementById('create-list-btn');
+  btn.disabled = true; btn.textContent = '…';
   input.value = '';
   document.getElementById('new-list-form').classList.add('hidden');
   await createList(name);
+  btn.disabled = false; btn.textContent = 'Create';
 });
 
 document.getElementById('new-list-name').addEventListener('keydown', e => {
@@ -2381,7 +2480,10 @@ document.getElementById('invite-shares-list').addEventListener('change', e => {
 
 document.getElementById('delete-list-btn').addEventListener('click', async () => {
   if (!selectedListId) return;
+  const btn = document.getElementById('delete-list-btn');
+  btn.disabled = true; btn.textContent = '…';
   await deleteList(selectedListId);
+  btn.disabled = false; btn.textContent = 'Delete Workspace';
 });
 
 document.getElementById('detail-list-name').addEventListener('change', async e => {
@@ -2393,7 +2495,10 @@ document.getElementById('detail-list-name').addEventListener('keydown', e => {
 
 document.getElementById('detail-add-btn').addEventListener('click', async () => {
   if (!selectedListId) return;
+  const btn = document.getElementById('detail-add-btn');
+  btn.disabled = true; btn.textContent = '…';
   await addUrl(selectedListId, document.getElementById('detail-add-url'));
+  btn.disabled = false; btn.textContent = 'Add Resource';
 });
 document.getElementById('detail-add-url').addEventListener('keydown', e => {
   if (e.key === 'Enter') document.getElementById('detail-add-btn').click();
@@ -2531,28 +2636,38 @@ document.getElementById('template-modal').addEventListener('click', e => {
 // ── Boot ──────────────────────────────────────────────────────────────────────
 
 async function boot() {
-  // Handle reset-password links arriving from email (tabrador.app/reset-password?token=...)
+  const bootEl = document.getElementById('boot-loader');
+
   const params     = new URLSearchParams(location.search);
-  const resetToken = params.get('token') || params.get('reset_token'); // support both URL shapes
+  const resetToken = params.get('token') || params.get('reset_token');
   if (resetToken) {
     document.getElementById('reset-token').value = resetToken;
     showAuthScreen();
     setAuthMode('reset');
     history.replaceState(null, '', location.pathname);
+    bootEl.classList.add('hidden');
     return;
   }
 
   const token = getToken();
-  if (!token) { showAuthScreen(); return; }
+  if (!token) {
+    showAuthScreen();
+    bootEl.classList.add('hidden');
+    return;
+  }
+
   try {
     const user = await apiFetch('/users/me');
     showApp(user.email);
-    await render();
+    showSidebarSkeleton();         // show skeleton items in sidebar
+    bootEl.classList.add('hidden'); // user now sees app with skeleton
+    await render();                 // lists load → skeleton replaced with real items
     await loadSharedWorkspaces();
-    showDashboard();
+    showDashboard();                // triggers loadDashboard() which shows its own skeleton
     checkShareLink();
   } catch {
     showAuthScreen();
+    bootEl.classList.add('hidden');
   }
 }
 
