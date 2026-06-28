@@ -1,9 +1,13 @@
 import logging
 import os
+import re
 import secrets
 import subprocess
 import sys
 from datetime import datetime, timezone
+
+# Matches "something@something.tld" — rejects "ryan@", "notanemail", etc.
+_EMAIL_RE = re.compile(r'^[^\s@]+@[^\s@]+\.[^\s@]{2,}$')
 
 from fastapi import Request
 from limiter import limiter
@@ -91,11 +95,24 @@ def _send_reset_email(to_email: str, token: str) -> None:
 @router.post("/register", response_model=schemas.UserOut, status_code=201)
 @limiter.limit("5/minute")  # 5 registrations/min per IP — prevents bulk account creation
 def register(request: Request, user_in: schemas.UserCreate, db: Session = Depends(get_db)):
+    # ── Server-side validation ────────────────────────────────────────────────
+    if len(user_in.password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Password must be at least 8 characters.",
+        )
+    if not _EMAIL_RE.match(user_in.email.strip()):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Please enter a valid email address.",
+        )
+    # ─────────────────────────────────────────────────────────────────────────
+
     existing = db.query(models.User).filter(models.User.email == user_in.email).first()
     if existing:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="An account with this email already exists."
+            detail="An account with that email already exists.",
         )
     user = models.User(
         email=user_in.email,

@@ -1268,11 +1268,40 @@ function setAuthError(msg) {
   el.classList.toggle('hidden', !msg);
 }
 
-async function submitAuth() {
-  const email    = document.getElementById('auth-email').value.trim();
-  const password = document.getElementById('auth-password').value;
+function _validEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email);
+}
 
-  if (!email || !password) { setAuthError('Please enter your email and password.'); return; }
+function _showEmailExistsError() {
+  const el = document.getElementById('auth-error');
+  el.innerHTML =
+    'An account with that email already exists. ' +
+    '<button class="auth-back-link" style="display:inline;padding:0;font-weight:600;color:#1E3A8A;" ' +
+    'id="_err-login-link">Log in instead →</button>';
+  el.classList.remove('hidden');
+  document.getElementById('_err-login-link')
+    ?.addEventListener('click', () => setAuthMode('login'));
+}
+
+async function submitAuth() {
+  const email        = document.getElementById('auth-email').value.trim();
+  const password     = document.getElementById('auth-password').value;
+  const isNewAccount = authMode === 'register';
+
+  // ── Frontend validation ──────────────────────────────────────────────────
+  if (!email || !password) {
+    setAuthError('Please enter your email and password.');
+    return;
+  }
+  if (!_validEmail(email)) {
+    setAuthError('Please enter a valid email address (e.g. name@example.com).');
+    return;
+  }
+  if (isNewAccount && password.length < 8) {
+    setAuthError('Password must be at least 8 characters.');
+    return;
+  }
+  // ─────────────────────────────────────────────────────────────────────────
 
   const btn = document.getElementById('auth-submit');
   btn.disabled = true;
@@ -1280,7 +1309,6 @@ async function submitAuth() {
   setAuthError('');
 
   try {
-    const isNewAccount = authMode === 'register';
     if (isNewAccount) {
       await apiFetch('/users/register', { method: 'POST', body: JSON.stringify({ email, password }) });
     }
@@ -1301,12 +1329,17 @@ async function submitAuth() {
       checkShareLink();
     }
   } catch (e) {
-    setAuthError(e.message);
+    // "Already exists" gets a friendly inline link rather than a raw error
+    if (isNewAccount && e.message.toLowerCase().includes('already exists')) {
+      _showEmailExistsError();
+    } else {
+      setAuthError(e.message);
+    }
   } finally {
     btn.disabled = false;
     // Restore button text directly — do NOT call setAuthMode() here because
     // setAuthMode always calls setAuthError('') which wipes the error message.
-    btn.textContent = authMode === 'login' ? 'Log In' : 'Create Account';
+    btn.textContent = isNewAccount ? 'Create Account' : 'Log In';
   }
 }
 
