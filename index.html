@@ -513,6 +513,31 @@
       padding: 0.5rem 0; margin-bottom: 2rem;
     }
 
+    /* ── Empty states ── */
+    .empty-state-block {
+      display: flex; flex-direction: column; align-items: center;
+      justify-content: center; text-align: center;
+      padding: 3.5rem 2rem; max-width: 480px; margin: 0 auto;
+    }
+    .empty-state-block.hidden { display: none !important; }
+    .empty-state-icon { margin-bottom: 1.25rem; }
+    .empty-state-title {
+      font-size: 1.2rem; font-weight: 700; color: #0F1E4A; margin-bottom: 0.4rem;
+    }
+    .empty-state-sub {
+      font-size: 0.88rem; color: #2D4FA0; font-weight: 500; margin-bottom: 0.5rem;
+    }
+    .empty-state-desc {
+      font-size: 0.82rem; color: #8EAAD8; line-height: 1.65; margin-bottom: 1.75rem;
+    }
+    .detail-empty-state {
+      list-style: none; display: flex; flex-direction: column;
+      align-items: center; text-align: center;
+      padding: 3rem 1.5rem; gap: 0.5rem;
+    }
+    .detail-empty-state p { font-size: 0.83rem; color: #8EAAD8; line-height: 1.5; }
+    .detail-empty-state strong { color: #2D4FA0; font-size: 0.9rem; }
+
     .dash-metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; }
     .dash-tile {
       background: #FFFFFF; border: 1px solid #C5D8F0; border-radius: 10px;
@@ -795,31 +820,50 @@
 
     <!-- DASHBOARD: landing page shown after login -->
     <div id="dashboard" class="dashboard">
-      <div class="dash-hero">
-        <div class="dash-hero-stat" id="dash-time-saved">—</div>
-        <div class="dash-hero-label">Time saved opening tabs</div>
-        <div class="dash-hero-sub">vs. opening each tab manually</div>
+
+      <!-- Empty state: shown only when the user has zero workspaces -->
+      <div id="dashboard-empty" class="empty-state-block hidden">
+        <svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 24 24"
+             fill="none" stroke="#C5D8F0" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"
+             class="empty-state-icon">
+          <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
+          <circle cx="12" cy="10" r="2.5" stroke="#8EAAD8"/>
+        </svg>
+        <div class="empty-state-title">Welcome to Tabrador!</div>
+        <div class="empty-state-sub">Let's set up your first workspace.</div>
+        <div class="empty-state-desc">A workspace is a named collection of URLs for a client, project, or topic.<br>Open them all with one click when you're ready to work.</div>
+        <button id="dashboard-create-btn" class="btn-primary" style="padding:0.65rem 1.75rem;font-size:0.9rem;">+ Create your first workspace</button>
       </div>
 
-      <div class="dash-section-label">Recently Used</div>
-      <div id="dash-recent" class="dash-recent-grid">
-        <p class="dash-empty-hint">Open a workspace with Start Working to see it here.</p>
+      <!-- Normal dashboard content: hidden until the user has at least one workspace -->
+      <div id="dashboard-content">
+        <div class="dash-hero">
+          <div class="dash-hero-stat" id="dash-time-saved">—</div>
+          <div class="dash-hero-label">Time saved opening tabs</div>
+          <div class="dash-hero-sub">vs. opening each tab manually</div>
+        </div>
+
+        <div class="dash-section-label">Recently Used</div>
+        <div id="dash-recent" class="dash-recent-grid">
+          <p class="dash-empty-hint">Open a workspace with Start Working to see it here.</p>
+        </div>
+
+        <div class="dash-metrics">
+          <button class="dash-tile" id="dash-tile-shared-by">
+            <div class="dash-tile-num" id="dash-num-shared-by">—</div>
+            <div class="dash-tile-label">Shared by me</div>
+          </button>
+          <button class="dash-tile" id="dash-tile-shared-with">
+            <div class="dash-tile-num" id="dash-num-shared-with">—</div>
+            <div class="dash-tile-label">Shared with me</div>
+          </button>
+          <button class="dash-tile" id="dash-tile-total">
+            <div class="dash-tile-num" id="dash-num-total">—</div>
+            <div class="dash-tile-label">My workspaces</div>
+          </button>
+        </div>
       </div>
 
-      <div class="dash-metrics">
-        <button class="dash-tile" id="dash-tile-shared-by">
-          <div class="dash-tile-num" id="dash-num-shared-by">—</div>
-          <div class="dash-tile-label">Shared by me</div>
-        </button>
-        <button class="dash-tile" id="dash-tile-shared-with">
-          <div class="dash-tile-num" id="dash-num-shared-with">—</div>
-          <div class="dash-tile-label">Shared with me</div>
-        </button>
-        <button class="dash-tile" id="dash-tile-total">
-          <div class="dash-tile-num" id="dash-num-total">—</div>
-          <div class="dash-tile-label">My workspaces</div>
-        </button>
-      </div>
     </div>
 
     <!-- My Workspaces grid view -->
@@ -1431,7 +1475,7 @@ function renderSharedOut() {
   const container = document.getElementById('shared-out-list');
   container.innerHTML = '';
   if (sharedOutData.length === 0) {
-    container.innerHTML = '<p class="dash-empty-hint">You haven\'t shared any workspaces yet. Use the Invite button on any workspace to share it.</p>';
+    container.innerHTML = '<p class="dash-empty-hint">You haven\'t shared any workspaces yet. Open a workspace and use the Invite button to share it with a teammate.</p>';
     return;
   }
   sharedOutData.forEach(ws => {
@@ -1478,7 +1522,21 @@ async function loadDashboard() {
   try {
     const data = await apiFetch('/users/dashboard');
 
-    document.getElementById('dash-time-saved').textContent = formatTimeSaved(data.time_saved_seconds);
+    const emptyEl   = document.getElementById('dashboard-empty');
+    const contentEl = document.getElementById('dashboard-content');
+
+    if (data.total_workspaces === 0) {
+      // New user — show the welcome empty state, hide stats/metrics
+      emptyEl.classList.remove('hidden');
+      contentEl.classList.add('hidden');
+      return;
+    }
+
+    // Has workspaces — show normal dashboard content
+    emptyEl.classList.add('hidden');
+    contentEl.classList.remove('hidden');
+
+    document.getElementById('dash-time-saved').textContent      = formatTimeSaved(data.time_saved_seconds);
     document.getElementById('dash-num-shared-by').textContent   = data.shared_by_me;
     document.getElementById('dash-num-shared-with').textContent = data.shared_with_me;
     document.getElementById('dash-num-total').textContent       = data.total_workspaces;
@@ -1770,8 +1828,8 @@ function renderSidebar() {
 
   if (currentLists.length === 0) {
     const p = document.createElement('p');
-    p.className   = 'nav-empty-hint';
-    p.textContent = 'No workspaces yet — click + to create one.';
+    p.className = 'nav-empty-hint';
+    p.innerHTML = 'No workspaces yet&nbsp;&mdash; click&nbsp;<strong style="color:#C5D8F0;">+</strong>&nbsp;above to create one.';
     myListsContainer.appendChild(p);
   } else {
     currentLists.forEach(list => myListsContainer.appendChild(buildNavItem(list)));
@@ -1781,7 +1839,7 @@ function renderSidebar() {
   if (sharedWorkspaces.length === 0) {
     const p = document.createElement('p');
     p.className   = 'nav-coming-soon';
-    p.textContent = 'No workspaces shared with you yet.';
+    p.textContent = 'Nothing shared with you yet.';
     teamContainer.appendChild(p);
   } else {
     sharedWorkspaces.forEach(ws => {
@@ -1800,7 +1858,7 @@ function renderSidebar() {
   if (starred.length === 0) {
     const p = document.createElement('p');
     p.className   = 'nav-coming-soon';
-    p.textContent = 'No starred workspaces yet.';
+    p.textContent = 'Star a workspace to pin it here.';
     starredContainer.appendChild(p);
   } else {
     starred.forEach(list => starredContainer.appendChild(buildNavItem(list)));
@@ -1820,7 +1878,7 @@ function renderMyWorkspaces() {
   const grid = document.getElementById('my-workspaces-grid');
   grid.innerHTML = '';
   if (currentLists.length === 0) {
-    grid.innerHTML = '<p class="dash-empty-hint">No workspaces yet — click + in the sidebar to create one.</p>';
+    grid.innerHTML = '<p class="dash-empty-hint">No workspaces yet — click + next to My Workspaces in the sidebar to create one.</p>';
     return;
   }
   currentLists.forEach(list => {
@@ -1845,7 +1903,7 @@ function renderSharedWithMe() {
   const grid = document.getElementById('shared-with-me-grid');
   grid.innerHTML = '';
   if (sharedWorkspaces.length === 0) {
-    grid.innerHTML = '<p class="dash-empty-hint">No workspaces have been shared with you yet.</p>';
+    grid.innerHTML = '<p class="dash-empty-hint">No shared workspaces yet. When a teammate shares a workspace with you, it will appear here.</p>';
     return;
   }
   sharedWorkspaces.forEach(ws => {
@@ -1931,8 +1989,17 @@ function renderDetail() {
 
   if (list.urls.length === 0) {
     tableHeader.classList.add('hidden');
-    // TERMINOLOGY: "No resources yet" was "No URLs yet"
-    urlList.innerHTML = '<li class="detail-empty">No resources yet — paste a URL below.</li>';
+    urlList.innerHTML = `
+      <li class="detail-empty-state">
+        <svg xmlns="http://www.w3.org/2000/svg" width="44" height="44" viewBox="0 0 24 24"
+             fill="none" stroke="#C5D8F0" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"
+             style="margin-bottom:0.5rem;">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+        </svg>
+        <strong>This workspace is empty</strong>
+        <p>Add your first resource to get started.<br>Paste a URL in the field below and press Enter.</p>
+      </li>`;
   } else {
     tableHeader.classList.remove('hidden');
     list.urls.forEach(u => {
@@ -2171,8 +2238,14 @@ document.querySelectorAll('.onboarding-option').forEach(btn => {
 });
 document.getElementById('onboarding-skip').addEventListener('click', () => completeOnboarding(null));
 
-// DASHBOARD: sidebar home link + metric tiles
+// DASHBOARD: sidebar home link + metric tiles + empty-state create button
 document.getElementById('sidebar-home').addEventListener('click', showDashboard);
+document.getElementById('dashboard-create-btn').addEventListener('click', () => {
+  // Open the new-workspace form in the sidebar
+  const form = document.getElementById('new-list-form');
+  form.classList.remove('hidden');
+  document.getElementById('new-list-name').focus();
+});
 document.getElementById('sidebar-shared-out').addEventListener('click', showSharedOut);
 document.getElementById('dash-tile-shared-by').addEventListener('click', showSharedOut);
 document.getElementById('dash-tile-shared-with').addEventListener('click', showSharedWithMe);
