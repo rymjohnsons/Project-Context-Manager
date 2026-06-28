@@ -78,3 +78,15 @@ def reset_password_page():
     # load the frontend, which reads the token from the query string in boot().
     html = os.path.join(os.path.dirname(__file__), '..', 'index.html')
     return FileResponse(os.path.abspath(html))
+
+
+@app.get("/terms", tags=["legal"])
+def terms_page():
+    html = os.path.join(os.path.dirname(__file__), '..', 'terms.html')
+    return FileResponse(os.path.abspath(html))
+
+
+@app.get("/privacy", tags=["legal"])
+def privacy_page():
+    html = os.path.join(os.path.dirname(__file__), '..', 'privacy.html')
+    return FileResponse(os.path.abspath(html))
