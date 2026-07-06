@@ -2251,11 +2251,9 @@ async function confirmTransfer() {
       method: 'POST',
       body: JSON.stringify({ dest_list_id: parseInt(destId, 10) }),
     });
-    const verb = _transferMode === 'move' ? 'moved' : 'copied';
     closeTransferModal();
     await render();
     renderDetail();
-    showToast(`Resource ${verb}.`, 'success');
   } catch (e) {
     showErrorToast(e.message);
     btn.disabled = false;
