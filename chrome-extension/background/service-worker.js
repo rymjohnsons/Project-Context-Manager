@@ -63,6 +63,7 @@ chrome.tabs.onActivated.addListener(async ({ tabId }) => {
 // 2. A tab navigates to a new URL (catches forward/back, link clicks, etc.).
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status !== 'complete') return;
+  console.log('[Tabrador SW] onUpdated complete:', tab.url);
 
   // Badge check for the active tab.
   if (tab.active) checkTabUrl(tab.url);
