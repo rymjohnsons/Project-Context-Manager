@@ -1106,7 +1106,6 @@
           <button id="open-all-btn"    class="btn-open">Start Working ↗</button>
           <button id="close-all-btn"   class="btn-close hidden">Wrap Up</button>
           <button id="star-btn"        class="btn-star">☆ Star</button>
-          <button id="share-btn"       class="btn-share">Copy Link</button>
           <button id="invite-btn"      class="btn-share">Invite</button>
           <button id="delete-list-btn" class="btn-danger-outline">Delete Workspace</button>
         </div>
@@ -2132,19 +2131,6 @@ function decodeShareToken(raw) {
   return JSON.parse(decodeURIComponent(escape(atob(raw))));
 }
 
-function shareList() {
-  const list = currentLists.find(l => l.id == selectedListId) || sharedListDetails.find(l => l.id == selectedListId);
-  if (!list) return;
-  const token    = encodeList(list);
-  const shareUrl = location.href.split('#')[0] + '#share=' + token;
-  navigator.clipboard.writeText(shareUrl).then(() => {
-    const btn = document.getElementById('share-btn');
-    const orig = btn.textContent;
-    btn.textContent = 'Copied!';
-    btn.disabled = true;
-    setTimeout(() => { btn.textContent = orig; btn.disabled = false; }, 2000);
-  }).catch(() => window.prompt('Copy this share link:', shareUrl));
-}
 
 let pendingImport = null;
 
@@ -2711,7 +2697,6 @@ document.getElementById('dismiss-large-warning').addEventListener('click', () =>
   document.getElementById('large-workspace-warning').classList.add('hidden');
 });
 document.getElementById('star-btn').addEventListener('click', toggleStar);
-document.getElementById('share-btn').addEventListener('click', shareList);
 document.getElementById('invite-btn').addEventListener('click', openInvitePanel);
 document.getElementById('invite-close-btn').addEventListener('click', closeInvitePanel);
 document.getElementById('invite-submit-btn').addEventListener('click', submitInvite);
