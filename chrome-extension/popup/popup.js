@@ -305,7 +305,6 @@ async function render() {
   if (prevSelected) listSelect.value = prevSelected;
 
   // List cards
-  const container = document.getElementById('lists-container');
   const openTabs  = await loadOpenTabs();
   container.innerHTML = '';
 

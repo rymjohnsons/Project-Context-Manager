@@ -316,6 +316,19 @@
     .modal textarea::placeholder { color: #8EAAD8; }
     .modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
 
+    .modal--transfer { width: 360px; }
+    .modal-field { display: flex; flex-direction: column; gap: 0.4rem; margin: 1rem 0 1.25rem; }
+    .modal-field label { font-size: 0.8rem; color: #8EAAD8; font-weight: 500; }
+    .modal-select {
+      background: #F4F1EA; border: 1px solid #C5D8F0; border-radius: 6px;
+      color: #0F1E4A; font-size: 0.83rem; padding: 0.5rem 0.6rem;
+      outline: none; font-family: inherit; cursor: pointer; width: 100%;
+    }
+    .modal-select:focus { border-color: #1E3A8A; }
+
+    .url-action-btn.url-move:hover { color: #2D4FA0; background: #EEF4FB; }
+    .url-action-btn.url-copy:hover { color: #2D4FA0; background: #EEF4FB; }
+
     /* ── Error toast ── */
     .error-toast {
       position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%);
@@ -363,7 +376,7 @@
     /* ── URL table columns ── */
     .detail-url-table-header {
       display: grid;
-      grid-template-columns: 1fr 155px 115px 88px;
+      grid-template-columns: 1fr 155px 115px 120px;
       align-items: center;
       padding: 0.2rem 0.85rem 0.35rem;
       font-size: 0.63rem; font-weight: 600; color: #8EAAD8;
@@ -382,7 +395,7 @@
 
     .url-row {
       display: grid;
-      grid-template-columns: 1fr 155px 115px 88px;
+      grid-template-columns: 1fr 155px 115px 120px;
       align-items: center;
       padding: 0.5rem 0.85rem;
     }
@@ -1188,6 +1201,21 @@
     </div>
     <div class="modal-actions">
       <button class="btn-secondary" id="template-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Move / Copy to workspace modal -->
+<div id="transfer-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="transfer-modal-title">
+  <div class="modal modal--transfer">
+    <h2 id="transfer-modal-title">Move to workspace</h2>
+    <div class="modal-field">
+      <label for="transfer-workspace-select">Select workspace</label>
+      <select id="transfer-workspace-select" class="modal-select"></select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="transfer-cancel-btn">Cancel</button>
+      <button class="btn-primary"   id="transfer-confirm-btn">Move</button>
     </div>
   </div>
 </div>
@@ -2169,6 +2197,72 @@ function closeSnapshotModal() {
   document.getElementById('snapshot-modal').classList.add('hidden');
 }
 
+// ── Transfer modal (move / copy resource to another workspace) ─────────────────
+
+let _transferMode   = null;  // 'move' | 'copy'
+let _transferListId = null;
+let _transferUrlId  = null;
+
+function openTransferModal(mode, listId, urlId) {
+  _transferMode   = mode;
+  _transferListId = listId;
+  _transferUrlId  = urlId;
+
+  document.getElementById('transfer-modal-title').textContent =
+    mode === 'move' ? 'Move to workspace' : 'Copy to workspace';
+  document.getElementById('transfer-confirm-btn').textContent =
+    mode === 'move' ? 'Move' : 'Copy';
+
+  const select = document.getElementById('transfer-workspace-select');
+  select.innerHTML = '';
+  currentLists
+    .filter(l => l.id != listId)
+    .forEach(l => {
+      const opt = document.createElement('option');
+      opt.value = l.id;
+      opt.textContent = l.name;
+      select.appendChild(opt);
+    });
+
+  if (select.options.length === 0) {
+    showErrorToast('No other workspaces to transfer to — create one first.');
+    return;
+  }
+
+  document.getElementById('transfer-modal').classList.remove('hidden');
+  select.focus();
+}
+
+function closeTransferModal() {
+  document.getElementById('transfer-modal').classList.add('hidden');
+  _transferMode = _transferListId = _transferUrlId = null;
+}
+
+async function confirmTransfer() {
+  const destId = document.getElementById('transfer-workspace-select').value;
+  if (!destId) return;
+
+  const btn = document.getElementById('transfer-confirm-btn');
+  btn.disabled = true;
+  btn.textContent = _transferMode === 'move' ? 'Moving…' : 'Copying…';
+
+  try {
+    await apiFetch(`/lists/${_transferListId}/urls/${_transferUrlId}/${_transferMode}`, {
+      method: 'POST',
+      body: JSON.stringify({ dest_list_id: parseInt(destId, 10) }),
+    });
+    const verb = _transferMode === 'move' ? 'moved' : 'copied';
+    closeTransferModal();
+    await render();
+    renderDetail();
+    showToast(`Resource ${verb}.`, 'success');
+  } catch (e) {
+    showErrorToast(e.message);
+    btn.disabled = false;
+    btn.textContent = _transferMode === 'move' ? 'Move' : 'Copy';
+  }
+}
+
 async function importSnapshot() {
   // TERMINOLOGY: "Snapshot" used as fallback workspace name
   const name = document.getElementById('snapshot-list-name').value.trim() || 'Captured Session';
@@ -2461,6 +2555,22 @@ function renderDetail() {
             <button class="url-action-btn url-open"
                     data-href="${esc(u.url)}" data-list="${list.id}" data-url="${u.id}"
                     title="Open in new tab">↗</button>
+            <button class="url-action-btn url-move"
+                    data-list="${list.id}" data-url="${u.id}"
+                    title="Move to another workspace">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:block">
+                <path d="M1 8h7"/><path d="M5.5 5l2.5 3-2.5 3"/>
+                <rect x="9.5" y="3.5" width="5" height="9" rx="1"/>
+              </svg>
+            </button>
+            <button class="url-action-btn url-copy"
+                    data-list="${list.id}" data-url="${u.id}"
+                    title="Copy to another workspace">
+              <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="display:block">
+                <rect x="5" y="5" width="9" height="9" rx="1"/>
+                <path d="M4 11H3a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h7a1 1 0 0 1 1 1v1"/>
+              </svg>
+            </button>
             <button class="url-action-btn url-star ${starred ? 'starred' : ''}"
                     data-list="${list.id}" data-url="${u.id}" data-starred="${starred}"
                     title="${starred ? 'Unstar' : 'Star'}">${starred ? '★' : '☆'}</button>
@@ -2653,6 +2763,12 @@ document.getElementById('detail-url-list').addEventListener('click', async e => 
     return;
   }
 
+  const moveBtn = e.target.closest('.url-move');
+  if (moveBtn) { openTransferModal('move', moveBtn.dataset.list, moveBtn.dataset.url); return; }
+
+  const copyBtn = e.target.closest('.url-copy');
+  if (copyBtn) { openTransferModal('copy', copyBtn.dataset.list, copyBtn.dataset.url); return; }
+
   const starBtn = e.target.closest('.url-star');
   if (starBtn) {
     await toggleUrlStar(starBtn.dataset.list, starBtn.dataset.url, starBtn.dataset.starred === 'true');
@@ -2679,6 +2795,15 @@ document.getElementById('snapshot-modal').addEventListener('click', e => {
 });
 document.getElementById('snapshot-modal').addEventListener('keydown', e => {
   if (e.key === 'Escape') closeSnapshotModal();
+});
+
+document.getElementById('transfer-cancel-btn').addEventListener('click', closeTransferModal);
+document.getElementById('transfer-confirm-btn').addEventListener('click', confirmTransfer);
+document.getElementById('transfer-modal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeTransferModal();
+});
+document.getElementById('transfer-modal').addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeTransferModal();
 });
 
 document.getElementById('banner-import-btn').addEventListener('click',  importSharedList);

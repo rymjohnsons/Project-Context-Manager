@@ -28,6 +28,10 @@ class UrlStar(BaseModel):
     starred: bool
 
 
+class UrlTransferTarget(BaseModel):
+    dest_list_id: int
+
+
 # ── List schemas ───────────────────────────────────────────────────────────────
 
 class ListCreate(BaseModel):

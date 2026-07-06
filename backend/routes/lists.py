@@ -390,6 +390,59 @@ def remove_url(
     db.commit()
 
 
+@router.post("/{list_id}/urls/{url_id}/move", response_model=schemas.UrlOut)
+def move_url(
+    list_id:      int,
+    url_id:       int,
+    target:       schemas.UrlTransferTarget,
+    db:           Session     = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    """Move a resource from this workspace to another workspace the user can edit."""
+    get_list_or_404(list_id, current_user, db, require_edit=True)
+    get_list_or_404(target.dest_list_id, current_user, db, require_edit=True)
+    url = db.query(models.Url).filter(
+        models.Url.id      == url_id,
+        models.Url.list_id == list_id,
+    ).first()
+    if url is None:
+        raise HTTPException(status_code=404, detail="Resource not found in this workspace.")
+    url.list_id = target.dest_list_id
+    db.commit()
+    db.refresh(url)
+    return url
+
+
+@router.post("/{list_id}/urls/{url_id}/copy", response_model=schemas.UrlOut, status_code=201)
+def copy_url(
+    list_id:      int,
+    url_id:       int,
+    target:       schemas.UrlTransferTarget,
+    db:           Session     = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    """Copy a resource to another workspace; the original remains in its workspace."""
+    get_list_or_404(list_id, current_user, db)
+    get_list_or_404(target.dest_list_id, current_user, db, require_edit=True)
+    url = db.query(models.Url).filter(
+        models.Url.id      == url_id,
+        models.Url.list_id == list_id,
+    ).first()
+    if url is None:
+        raise HTTPException(status_code=404, detail="Resource not found in this workspace.")
+    new_url = models.Url(
+        url         = url.url,
+        title       = url.title,
+        notes       = url.notes,
+        list_id     = target.dest_list_id,
+        added_by_id = current_user.id,
+    )
+    db.add(new_url)
+    db.commit()
+    db.refresh(new_url)
+    return new_url
+
+
 @router.patch("/{list_id}/urls/{url_id}/star", response_model=schemas.UrlOut)
 def star_url(
     list_id:      int,
