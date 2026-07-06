@@ -513,11 +513,37 @@ document.getElementById('lists-container').addEventListener('click', async e => 
   }
 });
 
+// ── Web-app token bridge ────────────────────────────────────────────────────────
+// If no extension token exists, check whether the user is already logged into
+// a tabrador.app tab and borrow the token from its localStorage.
+
+async function tryWebAppToken() {
+  try {
+    const tabs = await chrome.tabs.query({ url: 'https://tabrador.app/*' });
+    if (tabs.length === 0) return null;
+    const results = await chrome.scripting.executeScript({
+      target: { tabId: tabs[0].id },
+      func: () => localStorage.getItem('pcm_token'),
+    });
+    return results?.[0]?.result || null;
+  } catch {
+    return null;
+  }
+}
+
 // ── Boot ───────────────────────────────────────────────────────────────────────
 
 async function boot() {
   await loadToken();
-  if (!_token) { showLoginScreen(); return; }
+  if (!_token) {
+    const webToken = await tryWebAppToken();
+    if (webToken) {
+      await setToken(webToken);
+    } else {
+      showLoginScreen();
+      return;
+    }
+  }
   try {
     const user = await apiFetch('/users/me');
     showMainUI(user.email);
