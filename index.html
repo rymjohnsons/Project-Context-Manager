@@ -80,8 +80,13 @@
       padding: 0 0.85rem 0.35rem;
     }
     .nav-section-label {
-      font-size: 0.63rem; font-weight: 600; color: #8EAAD8;
-      letter-spacing: 0.08em; text-transform: uppercase;
+      display: inline-flex; align-items: center;
+      font-size: 0.6rem; font-weight: 700; color: #8EAAD8;
+      letter-spacing: 0.09em; text-transform: uppercase;
+      background: rgba(142, 170, 216, 0.1);
+      border-left: 2px solid #8EAAD8;
+      border-radius: 0 4px 4px 0;
+      padding: 0.2rem 0.55rem 0.2rem 0.45rem;
     }
     .nav-add-btn {
       background: transparent; border: none; color: #8EAAD8;
@@ -196,15 +201,21 @@
 
     .detail-header { flex-shrink: 0; margin-bottom: 1.25rem; }
 
-    .detail-title-row { display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.9rem; }
+    .detail-title-row { display: flex; align-items: center; gap: 0.35rem; margin-bottom: 0.9rem; }
     input.detail-name-input {
       flex: 1; font-size: 1.4rem; font-weight: 700; color: #0F1E4A;
-      background: transparent; border: 1px solid transparent; border-radius: 6px;
+      background: transparent; border: 2px solid transparent; border-radius: 6px;
       padding: 0.2rem 0.4rem; margin-left: -0.4rem; font-family: inherit;
       outline: none; transition: border-color 0.15s, background 0.15s; width: auto;
     }
-    input.detail-name-input:hover { border-color: #C5D8F0; }
     input.detail-name-input:focus { border-color: #1E3A8A; background: #FFFFFF; }
+    .detail-title-row:focus-within .detail-edit-btn { opacity: 0; pointer-events: none; }
+    .detail-edit-btn {
+      background: transparent; border: none; cursor: pointer; color: #C5D8F0;
+      padding: 0.25rem 0.3rem; border-radius: 4px; display: flex; align-items: center;
+      flex-shrink: 0; transition: color 0.15s, background 0.15s;
+    }
+    .detail-edit-btn:hover { color: #8EAAD8; background: rgba(197, 216, 240, 0.3); }
 
     .detail-url-count {
       font-size: 0.74rem; color: #2D4FA0; background: #C5D8F0;
@@ -1112,6 +1123,9 @@
         <div class="detail-title-row">
           <!-- TERMINOLOGY: aria-label updated -->
           <input type="text" id="detail-list-name" class="detail-name-input" aria-label="Workspace name" />
+          <button class="detail-edit-btn" id="detail-edit-btn" title="Rename workspace" type="button">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 2.5a2.121 2.121 0 0 1 3 3l-8 8-4 1 1-4 8-8z"/></svg>
+          </button>
           <span id="detail-url-count" class="detail-url-count"></span>
         </div>
         <div id="detail-favicons" class="detail-favicons"></div>
@@ -2799,6 +2813,11 @@ document.getElementById('detail-list-name').addEventListener('change', async e =
 });
 document.getElementById('detail-list-name').addEventListener('keydown', e => {
   if (e.key === 'Enter') e.target.blur();
+});
+document.getElementById('detail-edit-btn').addEventListener('click', () => {
+  const input = document.getElementById('detail-list-name');
+  input.focus();
+  input.select();
 });
 
 document.getElementById('detail-add-btn').addEventListener('click', async () => {
