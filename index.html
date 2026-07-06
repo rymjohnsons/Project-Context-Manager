@@ -2210,8 +2210,9 @@ function openTransferModal(mode, listId, urlId) {
 
   document.getElementById('transfer-modal-title').textContent =
     mode === 'move' ? 'Move to workspace' : 'Copy to workspace';
-  document.getElementById('transfer-confirm-btn').textContent =
-    mode === 'move' ? 'Move' : 'Copy';
+  const confirmBtn = document.getElementById('transfer-confirm-btn');
+  confirmBtn.textContent = mode === 'move' ? 'Move' : 'Copy';
+  confirmBtn.disabled = false;
 
   const select = document.getElementById('transfer-workspace-select');
   select.innerHTML = '';
