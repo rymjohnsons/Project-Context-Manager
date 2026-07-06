@@ -513,44 +513,14 @@ document.getElementById('lists-container').addEventListener('click', async e => 
   }
 });
 
-// ── Web-app token bridge ────────────────────────────────────────────────────────
-// Ask the content script (running in any open tabrador.app tab) for the current
-// pcm_token. Falls back to null if no matching tab is open or the script has no
-// token yet.
-
-async function requestTokenFromWebApp() {
-  try {
-    const allTabs = await chrome.tabs.query({});
-    const tab = allTabs.find(t =>
-      t.url &&
-      (t.url.startsWith('https://tabrador.app/') ||
-       t.url.startsWith('https://www.tabrador.app/'))
-    );
-    if (!tab) return null;
-    return await new Promise(resolve => {
-      chrome.tabs.sendMessage(tab.id, { type: 'TABRADOR_GET_TOKEN' }, response => {
-        if (chrome.runtime.lastError || !response) { resolve(null); return; }
-        resolve(response.token || null);
-      });
-    });
-  } catch {
-    return null;
-  }
-}
-
 // ── Boot ───────────────────────────────────────────────────────────────────────
+// The service worker caches pcm_token from tabrador.app into chrome.storage.local
+// whenever a tabrador.app page finishes loading, so by the time the popup opens
+// the token is already here.
 
 async function boot() {
   await loadToken();
-  if (!_token) {
-    const webToken = await requestTokenFromWebApp();
-    if (webToken) {
-      await setToken(webToken);
-    } else {
-      showLoginScreen();
-      return;
-    }
-  }
+  if (!_token) { showLoginScreen(); return; }
   try {
     const user = await apiFetch('/users/me');
     showMainUI(user.email);

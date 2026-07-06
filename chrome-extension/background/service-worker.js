@@ -61,11 +61,30 @@ chrome.tabs.onActivated.addListener(async ({ tabId }) => {
 });
 
 // 2. A tab navigates to a new URL (catches forward/back, link clicks, etc.).
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  // status === 'complete' means the page has finished loading.
-  // tab.active ensures we only care about the tab the user is looking at.
-  if (changeInfo.status === 'complete' && tab.active) {
-    checkTabUrl(tab.url);
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  if (changeInfo.status !== 'complete') return;
+
+  // Badge check for the active tab.
+  if (tab.active) checkTabUrl(tab.url);
+
+  // Token capture: when a tabrador.app page finishes loading, read its
+  // pcm_token from localStorage and cache it for the popup's auto-login.
+  if (tab.url &&
+      (tab.url.startsWith('https://tabrador.app/') ||
+       tab.url.startsWith('https://www.tabrador.app/'))) {
+    try {
+      const results = await chrome.scripting.executeScript({
+        target: { tabId },
+        func: () => localStorage.getItem('pcm_token'),
+      });
+      const token = results?.[0]?.result;
+      if (token) {
+        await chrome.storage.local.set({ projectContextManager_token: token });
+        console.log('[Tabrador SW] token cached from tabrador.app tab');
+      }
+    } catch (err) {
+      console.warn('[Tabrador SW] could not capture token:', err);
+    }
   }
 });
 
