@@ -119,6 +119,19 @@
       padding: 1px 5px; border-radius: 3px; flex-shrink: 0;
     }
 
+    .nav-favicon-strip {
+      width: 100%; display: flex; align-items: center; gap: 4px;
+      padding-top: 4px; padding-bottom: 1px; flex-wrap: wrap;
+    }
+    .favicon-extra {
+      font-size: 0.65rem; color: #8EAAD8; font-weight: 500; line-height: 1;
+    }
+    .detail-favicons {
+      display: flex; align-items: center; gap: 6px; margin-bottom: 0.75rem;
+      flex-wrap: wrap;
+    }
+    .detail-favicons:empty { display: none; }
+
     .nav-empty-hint { font-size: 0.74rem; color: #8EAAD8; padding: 0.25rem 0.85rem 0.5rem; font-style: italic; }
     .nav-coming-soon { font-size: 0.74rem; color: #8EAAD8; padding: 0.25rem 0.85rem 0.5rem; font-style: italic; }
 
@@ -1101,6 +1114,7 @@
           <input type="text" id="detail-list-name" class="detail-name-input" aria-label="Workspace name" />
           <span id="detail-url-count" class="detail-url-count"></span>
         </div>
+        <div id="detail-favicons" class="detail-favicons"></div>
         <div class="detail-action-bar">
           <!-- TERMINOLOGY: "Start Working" was "Open All", "Wrap Up" was "Close All", "Delete Workspace" was "Delete List" -->
           <button id="open-all-btn"    class="btn-open">Start Working ↗</button>
@@ -1994,6 +2008,11 @@ async function loadDashboard() {
           <div class="dash-recent-meta">
             ${ws.url_count} resource${ws.url_count !== 1 ? 's' : ''}${ws.last_opened ? ' · ' + formatDate(ws.last_opened) : ''}
           </div>`;
+        const fullList = currentLists.find(l => l.id === ws.id);
+        if (fullList && fullList.urls.length > 0) {
+          const strip = buildFaviconStrip(fullList.urls, 16);
+          if (strip) card.querySelector('.dash-recent-name').after(strip);
+        }
         card.addEventListener('click', () => selectList(ws.id));
         recentEl.appendChild(card);
       });
@@ -2313,6 +2332,50 @@ function esc(str) {
     .replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
+// ── Favicon helpers ────────────────────────────────────────────────────────────
+
+function getFaviconDomains(urls, max = 3) {
+  const count = {};
+  for (const u of urls) {
+    try {
+      const d = new URL(u.url).hostname;
+      count[d] = (count[d] || 0) + 1;
+    } catch {}
+  }
+  const sorted = Object.entries(count).sort((a, b) => b[1] - a[1]).map(([d]) => d);
+  return { top: sorted.slice(0, max), extra: Math.max(0, sorted.length - max) };
+}
+
+function buildFaviconStrip(urls, size) {
+  const { top, extra } = getFaviconDomains(urls);
+  if (top.length === 0) return null;
+  const strip = document.createElement('div');
+  strip.className = 'nav-favicon-strip';
+  top.forEach(domain => {
+    const img = document.createElement('img');
+    img.src    = `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=${size * 2}`;
+    img.width  = size;
+    img.height = size;
+    img.alt    = '';
+    img.title  = domain;
+    img.style.cssText = 'border-radius:4px;display:block;flex-shrink:0;';
+    img.addEventListener('error', () => {
+      const fb = document.createElement('span');
+      fb.textContent    = '🌐';
+      fb.style.cssText  = `font-size:${Math.round(size * 0.8)}px;line-height:1;`;
+      img.replaceWith(fb);
+    }, { once: true });
+    strip.appendChild(img);
+  });
+  if (extra > 0) {
+    const span = document.createElement('span');
+    span.className   = 'favicon-extra';
+    span.textContent = `+${extra}`;
+    strip.appendChild(span);
+  }
+  return strip;
+}
+
 // ── Rendering ─────────────────────────────────────────────────────────────────
 
 function buildNavItem(list) {
@@ -2324,6 +2387,13 @@ function buildNavItem(list) {
     ${list.starred ? '<span class="nav-item-star">★</span>' : ''}
     <span class="nav-item-count">${list.urls.length}</span>
   `;
+  if (list.urls.length > 0) {
+    const strip = buildFaviconStrip(list.urls, 16);
+    if (strip) {
+      item.style.flexWrap = 'wrap';
+      item.appendChild(strip);
+    }
+  }
   item.addEventListener('click', () => selectList(list.id));
   return item;
 }
@@ -2483,6 +2553,13 @@ function renderDetail() {
   // TERMINOLOGY: "resource(s)" was "URL(s)"
   document.getElementById('detail-url-count').textContent =
     `${list.urls.length} resource${list.urls.length !== 1 ? 's' : ''}`;
+
+  const faviconEl = document.getElementById('detail-favicons');
+  faviconEl.innerHTML = '';
+  if (list.urls.length > 0) {
+    const strip = buildFaviconStrip(list.urls, 32);
+    if (strip) faviconEl.appendChild(strip);
+  }
 
   const starBtn = document.getElementById('star-btn');
   starBtn.textContent = list.starred ? '★ Starred' : '☆ Star';
