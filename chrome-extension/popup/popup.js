@@ -519,14 +519,20 @@ document.getElementById('lists-container').addEventListener('click', async e => 
 
 async function tryWebAppToken() {
   try {
-    const tabs = await chrome.tabs.query({ url: 'https://tabrador.app/*' });
-    if (tabs.length === 0) return null;
+    const allTabs = await chrome.tabs.query({});
+    const tab = allTabs.find(t =>
+      t.url &&
+      (t.url.startsWith('https://tabrador.app/') ||
+       t.url.startsWith('https://www.tabrador.app/'))
+    );
+    if (!tab) return null;
     const results = await chrome.scripting.executeScript({
-      target: { tabId: tabs[0].id },
+      target: { tabId: tab.id },
       func: () => localStorage.getItem('pcm_token'),
     });
     return results?.[0]?.result || null;
-  } catch {
+  } catch (err) {
+    console.warn('[Tabrador] tryWebAppToken failed:', err);
     return null;
   }
 }
