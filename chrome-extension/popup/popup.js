@@ -513,14 +513,44 @@ document.getElementById('lists-container').addEventListener('click', async e => 
   }
 });
 
+// ── Web-app token bridge ────────────────────────────────────────────────────────
+// Ask the content script (running in any open tabrador.app tab) for the current
+// pcm_token. Falls back to null if no matching tab is open or the script has no
+// token yet.
+
+async function requestTokenFromWebApp() {
+  try {
+    const allTabs = await chrome.tabs.query({});
+    const tab = allTabs.find(t =>
+      t.url &&
+      (t.url.startsWith('https://tabrador.app/') ||
+       t.url.startsWith('https://www.tabrador.app/'))
+    );
+    if (!tab) return null;
+    return await new Promise(resolve => {
+      chrome.tabs.sendMessage(tab.id, { type: 'TABRADOR_GET_TOKEN' }, response => {
+        if (chrome.runtime.lastError || !response) { resolve(null); return; }
+        resolve(response.token || null);
+      });
+    });
+  } catch {
+    return null;
+  }
+}
+
 // ── Boot ───────────────────────────────────────────────────────────────────────
-// Token auto-sync: a content script on tabrador.app pages copies pcm_token
-// from the web app's localStorage into chrome.storage.local on every page load,
-// so by the time the popup opens the token is already available here.
 
 async function boot() {
   await loadToken();
-  if (!_token) { showLoginScreen(); return; }
+  if (!_token) {
+    const webToken = await requestTokenFromWebApp();
+    if (webToken) {
+      await setToken(webToken);
+    } else {
+      showLoginScreen();
+      return;
+    }
+  }
   try {
     const user = await apiFetch('/users/me');
     showMainUI(user.email);
