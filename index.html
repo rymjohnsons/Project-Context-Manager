@@ -2360,8 +2360,8 @@ function getFaviconDomains(urls, max = 3) {
   return { top: sorted.slice(0, max), extra: Math.max(0, sorted.length - max) };
 }
 
-function buildFaviconStrip(urls, size) {
-  const { top, extra } = getFaviconDomains(urls);
+function buildFaviconStrip(urls, size, max = 3) {
+  const { top, extra } = getFaviconDomains(urls, max);
   if (top.length === 0) return null;
   const strip = document.createElement('div');
   strip.className = 'nav-favicon-strip';
@@ -2571,7 +2571,7 @@ function renderDetail() {
   const faviconEl = document.getElementById('detail-favicons');
   faviconEl.innerHTML = '';
   if (list.urls.length > 0) {
-    const strip = buildFaviconStrip(list.urls, 32);
+    const strip = buildFaviconStrip(list.urls, 32, 10);
     if (strip) faviconEl.appendChild(strip);
   }
 
