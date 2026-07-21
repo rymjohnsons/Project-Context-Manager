@@ -599,6 +599,45 @@
       padding: 3.5rem 2rem; max-width: 480px; margin: 0 auto;
     }
     .empty-state-block.hidden { display: none !important; }
+
+    /* ── Onboarding panel (first-time users) ── */
+    .onboarding-panel { max-width: 680px; margin: 0 auto; padding: 2.25rem 0 1.5rem; }
+    .onboarding-panel.hidden { display: none !important; }
+    .onboarding-header { text-align: center; margin-bottom: 1.85rem; }
+    .onboarding-title { font-size: 1.45rem; font-weight: 700; color: #0F1E4A; margin-bottom: 0.4rem; }
+    .onboarding-sub { font-size: 0.84rem; color: #8EAAD8; line-height: 1.55; }
+    .onboarding-steps {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.25rem;
+      margin-bottom: 1.5rem;
+    }
+    .onboarding-step {
+      background: #FFFFFF; border: 1px solid #C5D8F0; border-radius: 12px;
+      padding: 1.25rem 1rem 1rem; display: flex; flex-direction: column;
+    }
+    .onboarding-step-num {
+      width: 26px; height: 26px; border-radius: 50%;
+      background: #1E3A8A; color: #FFFFFF;
+      font-size: 0.74rem; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-bottom: 0.7rem;
+    }
+    .onboarding-step-title { font-size: 0.86rem; font-weight: 700; color: #0F1E4A; margin-bottom: 0.35rem; }
+    .onboarding-step-desc { font-size: 0.76rem; color: #2D4FA0; line-height: 1.6; flex: 1; }
+    .onboarding-step-visual { margin: 0.9rem 0 0.75rem; display: flex; justify-content: center; }
+    .onboarding-ext-btn {
+      display: inline-flex; align-items: center; gap: 0.35rem;
+      background: #1E3A8A; color: #FFFFFF; border: none; border-radius: 6px;
+      cursor: pointer; padding: 0.45rem 0.9rem;
+      font-size: 0.75rem; font-weight: 600; text-decoration: none;
+      font-family: inherit; transition: background 0.15s; align-self: flex-start;
+    }
+    .onboarding-ext-btn:hover { background: #2D4FA0; }
+    .onboarding-manual { text-align: center; margin-top: 0.25rem; }
+    .onboarding-manual-link {
+      background: none; border: none; cursor: pointer; font-family: inherit;
+      font-size: 0.8rem; color: #8EAAD8; text-decoration: underline; padding: 0;
+    }
+    .onboarding-manual-link:hover { color: #2D4FA0; }
     .empty-state-icon { margin-bottom: 1.25rem; }
     .empty-state-title {
       font-size: 1.2rem; font-weight: 700; color: #0F1E4A; margin-bottom: 0.4rem;
@@ -1009,18 +1048,113 @@
         </div>
       </div>
 
-      <!-- Empty state: shown only when the user has zero workspaces -->
-      <div id="dashboard-empty" class="empty-state-block hidden">
-        <svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" viewBox="0 0 24 24"
-             fill="none" stroke="#C5D8F0" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"
-             class="empty-state-icon">
-          <rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/>
-          <circle cx="12" cy="10" r="2.5" stroke="#8EAAD8"/>
-        </svg>
-        <div class="empty-state-title">Welcome to Tabrador!</div>
-        <div class="empty-state-sub">Let's set up your first workspace.</div>
-        <div class="empty-state-desc">A workspace is a named collection of URLs for a client, project, or topic.<br>Open them all with one click when you're ready to work.</div>
-        <button id="dashboard-create-btn" class="btn-primary" style="padding:0.65rem 1.75rem;font-size:0.9rem;">+ Create your first workspace</button>
+      <!-- Onboarding: shown only when the user has zero workspaces -->
+      <div id="dashboard-empty" class="onboarding-panel hidden">
+        <div class="onboarding-header">
+          <div class="onboarding-title">Welcome to Tabrador!</div>
+          <div class="onboarding-sub">Three steps to save your first workspace in seconds.</div>
+        </div>
+
+        <div class="onboarding-steps">
+
+          <!-- Step 1: Get the extension -->
+          <div class="onboarding-step">
+            <div class="onboarding-step-num">1</div>
+            <div class="onboarding-step-title">Get the Chrome Extension</div>
+            <div class="onboarding-step-desc">Install the Tabrador Chrome Extension to capture your tabs instantly.</div>
+            <div class="onboarding-step-visual">
+              <!-- Extension popup illustration -->
+              <svg width="108" height="94" viewBox="0 0 108 94" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="0.75" y="0.75" width="106.5" height="92.5" rx="7.25" fill="white" stroke="#C5D8F0" stroke-width="1.5"/>
+                <rect x="0.75" y="0.75" width="106.5" height="22" rx="7.25" fill="#1E3A8A"/>
+                <rect x="0.75" y="13" width="106.5" height="10" fill="#1E3A8A"/>
+                <rect x="8" y="6" width="44" height="5" rx="2.5" fill="white" opacity="0.9"/>
+                <circle cx="96" cy="9" r="5" fill="#2D4FA0"/>
+                <rect x="8" y="28" width="92" height="8" rx="4" fill="#F4F1EA"/>
+                <rect x="12" y="30.5" width="28" height="3" rx="1.5" fill="#8EAAD8" opacity="0.7"/>
+                <rect x="8" y="42" width="60" height="3.5" rx="1.75" fill="#C5D8F0"/>
+                <rect x="8" y="49" width="50" height="3.5" rx="1.75" fill="#C5D8F0"/>
+                <rect x="8" y="56" width="66" height="3.5" rx="1.75" fill="#C5D8F0"/>
+                <rect x="8" y="66" width="44" height="11" rx="4" fill="#8EAAD8" opacity="0.45"/>
+                <rect x="56" y="66" width="44" height="11" rx="4" fill="#1E3A8A"/>
+                <rect x="61" y="69.5" width="32" height="4" rx="2" fill="white" opacity="0.85"/>
+              </svg>
+            </div>
+            <a href="https://chrome.google.com/webstore/detail/tabrador" target="_blank" rel="noopener" class="onboarding-ext-btn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+              Get Extension →
+            </a>
+          </div>
+
+          <!-- Step 2: Open your tabs -->
+          <div class="onboarding-step">
+            <div class="onboarding-step-num">2</div>
+            <div class="onboarding-step-title">Open your tabs</div>
+            <div class="onboarding-step-desc">Open all the tabs you use for one client, project, or context — no need to organize them first.</div>
+            <div class="onboarding-step-visual">
+              <!-- Browser tabs illustration -->
+              <svg width="108" height="94" viewBox="0 0 108 94" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="0.75" y="0.75" width="106.5" height="92.5" rx="7.25" fill="white" stroke="#C5D8F0" stroke-width="1.5"/>
+                <rect x="0.75" y="0.75" width="106.5" height="22" rx="7.25" fill="#F4F1EA"/>
+                <rect x="0.75" y="13" width="106.5" height="10" fill="#F4F1EA"/>
+                <!-- Active tab -->
+                <rect x="5" y="4" width="34" height="16" rx="5" fill="#1E3A8A"/>
+                <rect x="9" y="9" width="18" height="4" rx="2" fill="white" opacity="0.8"/>
+                <!-- Inactive tabs -->
+                <rect x="42" y="7" width="28" height="11" rx="4" fill="#C5D8F0" opacity="0.5"/>
+                <rect x="43" y="10" width="16" height="3" rx="1.5" fill="#8EAAD8" opacity="0.7"/>
+                <rect x="73" y="7" width="28" height="11" rx="4" fill="#C5D8F0" opacity="0.5"/>
+                <rect x="74" y="10" width="16" height="3" rx="1.5" fill="#8EAAD8" opacity="0.7"/>
+                <!-- Address bar -->
+                <rect x="8" y="27" width="92" height="7" rx="3.5" fill="#F4F1EA" stroke="#C5D8F0" stroke-width="1"/>
+                <!-- Page content lines -->
+                <rect x="8" y="40" width="75" height="5" rx="2.5" fill="#0F1E4A" opacity="0.15"/>
+                <rect x="8" y="49" width="55" height="3.5" rx="1.75" fill="#8EAAD8" opacity="0.4"/>
+                <rect x="8" y="56" width="65" height="3.5" rx="1.75" fill="#8EAAD8" opacity="0.4"/>
+                <!-- More tab cards hint -->
+                <rect x="8" y="66" width="27" height="20" rx="4" fill="#F4F1EA" stroke="#C5D8F0" stroke-width="1"/>
+                <rect x="39" y="66" width="27" height="20" rx="4" fill="#F4F1EA" stroke="#C5D8F0" stroke-width="1"/>
+                <rect x="70" y="66" width="27" height="20" rx="4" fill="#F4F1EA" stroke="#C5D8F0" stroke-width="1"/>
+                <rect x="12" y="70" width="18" height="3" rx="1.5" fill="#C5D8F0"/>
+                <rect x="43" y="70" width="18" height="3" rx="1.5" fill="#C5D8F0"/>
+                <rect x="74" y="70" width="18" height="3" rx="1.5" fill="#C5D8F0"/>
+              </svg>
+            </div>
+          </div>
+
+          <!-- Step 3: Capture Session -->
+          <div class="onboarding-step">
+            <div class="onboarding-step-num">3</div>
+            <div class="onboarding-step-title">Hit Capture Session</div>
+            <div class="onboarding-step-desc">Click <strong>Capture Session</strong> in the extension to save all your open tabs as a workspace instantly.</div>
+            <div class="onboarding-step-visual">
+              <!-- Extension popup with Capture Session highlighted -->
+              <svg width="108" height="94" viewBox="0 0 108 94" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="0.75" y="0.75" width="106.5" height="92.5" rx="7.25" fill="white" stroke="#C5D8F0" stroke-width="1.5"/>
+                <rect x="0.75" y="0.75" width="106.5" height="22" rx="7.25" fill="#1E3A8A"/>
+                <rect x="0.75" y="13" width="106.5" height="10" fill="#1E3A8A"/>
+                <rect x="8" y="6" width="44" height="5" rx="2.5" fill="white" opacity="0.9"/>
+                <rect x="8" y="28" width="92" height="8" rx="4" fill="#F4F1EA"/>
+                <rect x="12" y="30.5" width="40" height="3" rx="1.5" fill="#8EAAD8" opacity="0.6"/>
+                <rect x="8" y="41" width="92" height="9" rx="4" fill="#F4F1EA" stroke="#C5D8F0" stroke-width="1"/>
+                <rect x="12" y="44" width="30" height="3" rx="1.5" fill="#C5D8F0"/>
+                <rect x="8" y="55" width="44" height="10" rx="4" fill="#8EAAD8" opacity="0.3"/>
+                <rect x="56" y="55" width="44" height="10" rx="4" fill="#8EAAD8" opacity="0.3"/>
+                <!-- Capture Session button glowing -->
+                <rect x="5" y="70" width="98" height="17" rx="5" fill="#1E3A8A"/>
+                <rect x="5" y="70" width="98" height="17" rx="5" fill="white" opacity="0.08"/>
+                <rect x="18" y="75" width="71" height="5" rx="2.5" fill="white" opacity="0.9"/>
+                <!-- Click cursor -->
+                <path d="M95 63 L95 73 L98 70.5 L100.5 75 L102 74.2 L99.5 69.5 L103 68.5 Z" fill="#0F1E4A" opacity="0.6"/>
+              </svg>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="onboarding-manual">
+          <button id="dashboard-create-btn" class="onboarding-manual-link">Or create a workspace manually →</button>
+        </div>
       </div>
 
       <!-- Normal dashboard content -->
