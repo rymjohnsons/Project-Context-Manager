@@ -116,6 +116,10 @@
     }
     .nav-item:hover { background: #2D4FA0; }
     .nav-item--active { background: #2D4FA0; border-left-color: #C5D8F0; }
+    .nav-item--working::before {
+      content: ''; width: 8px; height: 8px; border-radius: 50%;
+      background: #22C55E; flex-shrink: 0;
+    }
     .nav-item-name {
       flex: 1; font-size: 0.8rem; color: #C5D8F0;
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -223,6 +227,15 @@
       font-size: 0.74rem; color: #2D4FA0; background: #C5D8F0;
       padding: 0.2rem 0.6rem; border-radius: 4px; white-space: nowrap; flex-shrink: 0;
     }
+    .detail-active-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 0.72rem; font-weight: 600; color: #22C55E; flex-shrink: 0;
+    }
+    .detail-active-badge::before {
+      content: ''; display: inline-block; border-radius: 50%;
+      width: 7px; height: 7px; background: #22C55E;
+    }
+    .detail-active-badge.hidden { display: none; }
 
     .detail-action-bar { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 
@@ -1129,6 +1142,7 @@
             <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 2.5a2.121 2.121 0 0 1 3 3l-8 8-4 1 1-4 8-8z"/></svg>
           </button>
           <span id="detail-url-count" class="detail-url-count"></span>
+          <span id="detail-active-badge" class="detail-active-badge hidden">Active</span>
         </div>
         <div id="detail-favicons" class="detail-favicons"></div>
         <div class="detail-action-bar">
@@ -1597,6 +1611,7 @@ let currentShares     = []; // shares for the currently selected workspace (owne
 const trackedWindows        = {};
 const openedLists           = new Set();
 const dismissedLargeWarning = new Set();
+let activeWorkspaceId = localStorage.getItem('pcm_active_workspace') || null;
 
 // ── List operations ───────────────────────────────────────────────────────────
 
@@ -2063,7 +2078,10 @@ async function openAll() {
   if (!list || list.urls.length === 0) return;
 
   openedLists.add(String(selectedListId));
+  activeWorkspaceId = String(selectedListId);
+  localStorage.setItem('pcm_active_workspace', activeWorkspaceId);
   updateOpenCloseButtons();
+  updateActiveIndicators();
 
   const urls     = list.urls;
   const total    = urls.length;
@@ -2142,13 +2160,31 @@ function closeAll() {
   (trackedWindows[selectedListId] || []).forEach(w => { if (w && !w.closed) w.close(); });
   delete trackedWindows[selectedListId];
   openedLists.delete(String(selectedListId));
+  if (String(selectedListId) === activeWorkspaceId) {
+    activeWorkspaceId = null;
+    localStorage.removeItem('pcm_active_workspace');
+  }
   updateOpenCloseButtons();
+  updateActiveIndicators();
 }
 
 function updateOpenCloseButtons() {
   const isOpen = openedLists.has(String(selectedListId));
   document.getElementById('open-all-btn').classList.toggle('hidden', isOpen);
   document.getElementById('close-all-btn').classList.toggle('hidden', !isOpen);
+}
+
+function updateActiveIndicators() {
+  document.querySelectorAll('.nav-item--working').forEach(el => el.classList.remove('nav-item--working'));
+  if (activeWorkspaceId) {
+    const el = document.querySelector(`.nav-item[data-id="${CSS.escape(activeWorkspaceId)}"]`);
+    if (el) el.classList.add('nav-item--working');
+  }
+  const badge = document.getElementById('detail-active-badge');
+  if (badge) {
+    const showing = activeWorkspaceId != null && String(selectedListId) === activeWorkspaceId;
+    badge.classList.toggle('hidden', !showing);
+  }
 }
 
 // ── Sharing ───────────────────────────────────────────────────────────────────
@@ -2396,7 +2432,10 @@ function buildFaviconStrip(urls, size, max = 3) {
 
 function buildNavItem(list) {
   const item = document.createElement('div');
-  item.className  = 'nav-item' + (list.id == selectedListId ? ' nav-item--active' : '');
+  const isWorking = String(list.id) === String(activeWorkspaceId);
+  item.className  = 'nav-item'
+    + (list.id == selectedListId ? ' nav-item--active' : '')
+    + (isWorking ? ' nav-item--working' : '');
   item.dataset.id = list.id;
   item.innerHTML  = `
     <span class="nav-item-name">${esc(list.name)}</span>
@@ -2582,6 +2621,7 @@ function renderDetail() {
   starBtn.classList.toggle('starred', list.starred);
 
   updateOpenCloseButtons();
+  updateActiveIndicators();
 
   const warningEl = document.getElementById('large-workspace-warning');
   if (list.urls.length > 30 && !dismissedLargeWarning.has(selectedListId)) {
