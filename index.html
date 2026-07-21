@@ -1609,9 +1609,16 @@ let sharedListDetails = []; // full List data for shared workspaces (fetched on 
 let sharedOutData     = []; // workspaces I've shared with others (for Shared Out view)
 let currentShares     = []; // shares for the currently selected workspace (owner view)
 const trackedWindows        = {};
-const openedLists           = new Set();
+const openedLists           = new Set(
+  JSON.parse(localStorage.getItem('pcm_opened_lists') || '[]').map(String)
+);
 const dismissedLargeWarning = new Set();
-let activeWorkspaceId = localStorage.getItem('pcm_active_workspace') || null;
+const activeWorkspaceIds    = new Set(
+  JSON.parse(localStorage.getItem('pcm_active_workspaces') || '[]').map(String)
+);
+
+function _saveOpenedLists()      { localStorage.setItem('pcm_opened_lists',      JSON.stringify([...openedLists])); }
+function _saveActiveWorkspaces() { localStorage.setItem('pcm_active_workspaces', JSON.stringify([...activeWorkspaceIds])); }
 
 // ── List operations ───────────────────────────────────────────────────────────
 
@@ -2078,8 +2085,9 @@ async function openAll() {
   if (!list || list.urls.length === 0) return;
 
   openedLists.add(String(selectedListId));
-  activeWorkspaceId = String(selectedListId);
-  localStorage.setItem('pcm_active_workspace', activeWorkspaceId);
+  activeWorkspaceIds.add(String(selectedListId));
+  _saveOpenedLists();
+  _saveActiveWorkspaces();
   updateOpenCloseButtons();
   updateActiveIndicators();
 
@@ -2160,10 +2168,9 @@ function closeAll() {
   (trackedWindows[selectedListId] || []).forEach(w => { if (w && !w.closed) w.close(); });
   delete trackedWindows[selectedListId];
   openedLists.delete(String(selectedListId));
-  if (String(selectedListId) === activeWorkspaceId) {
-    activeWorkspaceId = null;
-    localStorage.removeItem('pcm_active_workspace');
-  }
+  activeWorkspaceIds.delete(String(selectedListId));
+  _saveOpenedLists();
+  _saveActiveWorkspaces();
   updateOpenCloseButtons();
   updateActiveIndicators();
 }
@@ -2176,14 +2183,13 @@ function updateOpenCloseButtons() {
 
 function updateActiveIndicators() {
   document.querySelectorAll('.nav-item--working').forEach(el => el.classList.remove('nav-item--working'));
-  if (activeWorkspaceId) {
-    const el = document.querySelector(`.nav-item[data-id="${CSS.escape(activeWorkspaceId)}"]`);
+  activeWorkspaceIds.forEach(id => {
+    const el = document.querySelector(`.nav-item[data-id="${CSS.escape(id)}"]`);
     if (el) el.classList.add('nav-item--working');
-  }
+  });
   const badge = document.getElementById('detail-active-badge');
   if (badge) {
-    const showing = activeWorkspaceId != null && String(selectedListId) === activeWorkspaceId;
-    badge.classList.toggle('hidden', !showing);
+    badge.classList.toggle('hidden', !activeWorkspaceIds.has(String(selectedListId)));
   }
 }
 
@@ -2432,7 +2438,7 @@ function buildFaviconStrip(urls, size, max = 3) {
 
 function buildNavItem(list) {
   const item = document.createElement('div');
-  const isWorking = String(list.id) === String(activeWorkspaceId);
+  const isWorking = activeWorkspaceIds.has(String(list.id));
   item.className  = 'nav-item'
     + (list.id == selectedListId ? ' nav-item--active' : '')
     + (isWorking ? ' nav-item--working' : '');
