@@ -2252,6 +2252,9 @@ async function openAll() {
 
   if (total > 10) closeBtn.textContent = 'Wrap Up';
 
+  // Return focus to the first tab so the user lands there, not the last one opened.
+  if (trackedWindows[selectedListId]?.[0]) trackedWindows[selectedListId][0].focus();
+
   // Detect popup blocking — if the browser silently refused tabs, warn the user
   const opened = (trackedWindows[selectedListId] || []).length;
   if (opened === 0 && total > 0) {
