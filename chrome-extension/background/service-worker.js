@@ -81,10 +81,9 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
       const token = results?.[0]?.result;
       if (token) {
         await chrome.storage.local.set({ projectContextManager_token: token });
-        console.log('[Tabrador SW] token cached from tabrador.app tab');
       }
-    } catch (err) {
-      console.warn('[Tabrador SW] could not capture token:', err);
+    } catch {
+      // Fails silently if the page isn't accessible (e.g. host permission missing).
     }
   }
 });

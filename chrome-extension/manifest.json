@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Project Context Manager",
+  "name": "Tabrador",
   "version": "1.0.0",
-  "description": "Save, organize, and open URL lists. Works alongside the Project Context Manager web app.",
+  "description": "Save your open tabs as a named workspace and reopen them all with one click. Built for professionals who context-switch between clients and projects.",
 
   "permissions": [
     "storage",
@@ -27,9 +27,9 @@
   "action": {
     "default_popup": "popup/popup.html",
     "default_icon": {
-      "16": "icons/icon16.png",
-      "48": "icons/icon48.png",
-      "128": "icons/icon128.png"
+      "16": "Icons/icon16.png",
+      "48": "Icons/icon48.png",
+      "128": "Icons/icon128.png"
     }
   },
 
@@ -38,8 +38,8 @@
   },
 
   "icons": {
-    "16": "icons/icon16.png",
-    "48": "icons/icon48.png",
-    "128": "icons/icon128.png"
+    "16": "Icons/icon16.png",
+    "48": "Icons/icon48.png",
+    "128": "Icons/icon128.png"
   }
 }
