@@ -11,14 +11,13 @@
   ],
 
   "host_permissions": [
-    "https://web-production-b9ae2.up.railway.app/*",
     "https://tabrador.app/*",
     "https://www.tabrador.app/*"
   ],
 
   "content_scripts": [
     {
-      "matches": ["https://tabrador.app/*", "https://www.tabrador.app/*", "https://web-production-b9ae2.up.railway.app/*"],
+      "matches": ["https://tabrador.app/*", "https://www.tabrador.app/*"],
       "js": ["content/token-bridge.js"],
       "run_at": "document_idle"
     }

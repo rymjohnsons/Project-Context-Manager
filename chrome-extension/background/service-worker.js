@@ -71,8 +71,7 @@ chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   // pcm_token from localStorage and cache it for the popup's auto-login.
   if (tab.url &&
       (tab.url.startsWith('https://tabrador.app/') ||
-       tab.url.startsWith('https://www.tabrador.app/') ||
-       tab.url.startsWith('https://web-production-b9ae2.up.railway.app/'))) {
+       tab.url.startsWith('https://www.tabrador.app/'))) {
     try {
       const results = await chrome.scripting.executeScript({
         target: { tabId },
