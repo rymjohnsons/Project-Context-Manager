@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Tabrador",
   "version": "1.0.0",
-  "description": "Save your open tabs as a named workspace and reopen them all with one click. Built for professionals who context-switch between clients and projects.",
+  "description": "Save your open tabs as a workspace and reopen them all with one click. Perfect for professionals who context-switch between clients and projects.",
 
   "permissions": [
     "storage",
