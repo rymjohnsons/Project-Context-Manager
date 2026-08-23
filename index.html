@@ -224,16 +224,19 @@
     .detail-edit-btn:hover { color: #8EAAD8; background: rgba(197, 216, 240, 0.3); }
 
     .detail-url-count {
-      font-size: 0.74rem; color: #2D4FA0; background: #C5D8F0;
-      padding: 0.2rem 0.6rem; border-radius: 4px; white-space: nowrap; flex-shrink: 0;
+      font-size: 0.72rem; font-weight: 500; color: #2D4FA0;
+      background: rgba(197,216,240,0.5); border: 1px solid #C5D8F0;
+      padding: 0.15rem 0.65rem; border-radius: 20px; white-space: nowrap; flex-shrink: 0;
     }
     .detail-active-badge {
-      display: inline-flex; align-items: center; gap: 5px;
-      font-size: 0.72rem; font-weight: 600; color: #22C55E; flex-shrink: 0;
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 0.7rem; font-weight: 600; color: #15803d;
+      background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.25);
+      padding: 0.15rem 0.55rem 0.15rem 0.4rem; border-radius: 20px; flex-shrink: 0;
     }
     .detail-active-badge::before {
       content: ''; display: inline-block; border-radius: 50%;
-      width: 7px; height: 7px; background: #22C55E;
+      width: 6px; height: 6px; background: #22C55E; flex-shrink: 0;
     }
     .detail-active-badge.hidden { display: none; }
 
@@ -279,7 +282,7 @@
     input[type="email"],
     input[type="password"] {
       background: #FFFFFF; border: 1px solid #C5D8F0; color: #0F1E4A;
-      padding: 0.5rem 0.75rem; border-radius: 6px; font-size: 0.875rem;
+      padding: 0.5rem 0.75rem; border-radius: 8px; font-size: 0.875rem;
       outline: none; transition: border-color 0.15s; font-family: inherit; width: 100%;
     }
     input[type="text"]:focus,
@@ -289,7 +292,7 @@
 
     /* ── Buttons (global) ── */
     button {
-      cursor: pointer; border: none; border-radius: 6px; font-size: 0.875rem;
+      cursor: pointer; border: none; border-radius: 8px; font-size: 0.875rem;
       font-weight: 500; padding: 0.5rem 1rem; transition: background 0.15s, color 0.15s;
       font-family: inherit;
     }
@@ -307,8 +310,8 @@
     .btn-close     { background: transparent; color: #dc2626; border: 1px solid #dc2626; padding: 0.4rem 0.85rem; font-size: 0.8rem; }
     .btn-close:hover { background: #dc2626; color: white; }
 
-    .btn-share     { background: #C5D8F0; color: #1E3A8A; border: 1px solid #8EAAD8; padding: 0.4rem 0.85rem; font-size: 0.8rem; }
-    .btn-share:hover { background: #8EAAD8; color: #0F1E4A; }
+    .btn-share     { background: #F4F1EA; color: #1E3A8A; border: 1px solid #C5D8F0; padding: 0.4rem 0.85rem; font-size: 0.8rem; }
+    .btn-share:hover:not(:disabled) { background: #E8EEF8; border-color: #8EAAD8; }
     .btn-share:disabled { opacity: 0.6; cursor: default; }
 
     .btn-danger-outline { background: transparent; color: #8EAAD8; border: 1px solid transparent; padding: 0.4rem 0.75rem; font-size: 0.8rem; }
@@ -335,18 +338,20 @@
 
     /* Archived badge in detail header */
     .detail-archived-badge {
-      display: inline-flex; align-items: center; gap: 5px;
-      font-size: 0.72rem; font-weight: 600; color: #8EAAD8; flex-shrink: 0;
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 0.7rem; font-weight: 600; color: #6080a8;
+      background: rgba(142,170,216,0.12); border: 1px solid rgba(142,170,216,0.35);
+      padding: 0.15rem 0.55rem 0.15rem 0.4rem; border-radius: 20px; flex-shrink: 0;
     }
     .detail-archived-badge::before {
-      content: ''; display: inline-block; border-radius: 3px;
-      width: 7px; height: 7px; background: #8EAAD8;
+      content: ''; display: inline-block; border-radius: 2px;
+      width: 6px; height: 6px; background: #8EAAD8; flex-shrink: 0;
     }
     .detail-archived-badge.hidden { display: none; }
 
-    .btn-star        { background: transparent; color: #8EAAD8; border: 1px solid transparent; padding: 0.4rem 0.75rem; font-size: 0.8rem; }
-    .btn-star:hover  { color: #f59e0b; border-color: #f59e0b; }
-    .btn-star.starred { color: #f59e0b; }
+    .btn-star        { background: #F4F1EA; color: #1E3A8A; border: 1px solid #C5D8F0; padding: 0.4rem 0.75rem; font-size: 0.8rem; }
+    .btn-star:hover  { background: #E8EEF8; border-color: #8EAAD8; }
+    .btn-star.starred { color: #f59e0b; border-color: #f59e0b; background: rgba(245,158,11,0.06); }
 
     .nav-item-star { font-size: 0.7rem; flex-shrink: 0; color: #f59e0b; }
 
@@ -894,8 +899,18 @@
     .settings-pro-badge { color: #059669; font-weight: 600; }
     .settings-upgrade-desc { font-size: 0.82rem; color: #8EAAD8; line-height: 1.5; margin: 0.75rem 0 0.9rem; }
     .sidebar-footer-btn.sidebar-upgrade { color: #C5D8F0; font-weight: 500; }
+    .detail-footer {
+      display: flex; justify-content: flex-end; padding: 1.25rem 0 0.25rem;
+      border-top: 1px solid rgba(197,216,240,0.35); margin-top: 0.5rem; flex-shrink: 0;
+    }
+    .btn-delete-link {
+      background: transparent; border: 1px solid transparent; color: #8EAAD8;
+      font-size: 0.76rem; padding: 0.25rem 0.5rem; cursor: pointer; font-family: inherit;
+      transition: color 0.12s, border-color 0.12s;
+    }
+    .btn-delete-link:hover { color: #dc2626; border-color: rgba(220,38,38,0.3); }
     .btn-danger {
-      background: #dc2626; color: white; border: none; border-radius: 6px;
+      background: #dc2626; color: white; border: none; border-radius: 8px;
       padding: 0.5rem 1.1rem; font-size: 0.875rem; font-weight: 500; cursor: pointer;
       font-family: inherit; transition: background 0.15s;
     }
@@ -1365,7 +1380,6 @@
             <button id="detail-overflow-btn" class="btn-danger-outline" title="More options">•••</button>
             <div id="detail-overflow-menu" class="detail-overflow-menu hidden">
               <button id="archive-list-btn" class="overflow-menu-item">Archive Workspace</button>
-              <button id="delete-list-btn"  class="overflow-menu-item overflow-menu-item--danger">Delete Workspace</button>
             </div>
           </div>
         </div>
@@ -1405,28 +1419,27 @@
         <button id="detail-add-btn" class="btn-primary">Add Resource</button>
       </div>
       <p id="detail-add-error" class="detail-add-error hidden"></p>
+      <div class="detail-footer">
+        <button id="delete-list-btn" class="btn-delete-link">Delete Workspace</button>
+      </div>
     </div>
 
   </main>
 </div><!-- /#app -->
 
-<!-- TERMINOLOGY: "Capture Session" modal was "Snapshot Tabs" -->
+<!-- Capture Session info modal (web app: extension-only feature) -->
 <div id="snapshot-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-  <div class="modal">
-    <h2 id="modal-title">Capture Current Session → New Workspace</h2>
-    <p class="tip">
-      Web pages can't read your open tabs directly — that requires the Tabrador browser extension.
-      Paste one resource URL per line below to bulk-import them. Use a browser extension like
-      <em>Tab Copy</em> or <em>Copy All URLs</em> to grab your current tabs first.
-    </p>
-    <!-- TERMINOLOGY: "Client or project name" was "List name" -->
-    <input type="text" id="snapshot-list-name" placeholder="Client or project name (e.g. Acme Corp – Jun 4)" />
-    <!-- TERMINOLOGY: resource URLs -->
-    <textarea id="snapshot-urls" placeholder="https://example.com&#10;https://docs.something.dev/guide&#10;…"></textarea>
+  <div class="modal modal--confirm">
+    <h2 id="modal-title">Capture Session</h2>
+    <p style="margin:0.75rem 0 1.5rem;line-height:1.65;color:#4a5568;">Capture Session works by reading your open browser tabs, which isn't possible from a web page alone — only the Tabrador Chrome Extension can do this.</p>
     <div class="modal-actions">
-      <button class="btn-secondary" id="modal-cancel">Cancel</button>
-      <!-- TERMINOLOGY: "Import Resources" was "Import URLs" -->
-      <button class="btn-primary"   id="modal-import">Import Resources</button>
+      <button class="btn-secondary" id="modal-cancel">Close</button>
+      <a href="https://chrome.google.com/webstore/detail/tabrador" target="_blank" rel="noopener"
+         style="display:inline-flex;align-items:center;gap:0.35rem;background:#1E3A8A;color:#F4F1EA;
+                border-radius:8px;padding:0.5rem 1rem;font-size:0.875rem;font-weight:500;
+                text-decoration:none;transition:background 0.15s;font-family:inherit;">
+        Get the Tabrador Extension ↗
+      </a>
     </div>
   </div>
 </div>
@@ -2569,11 +2582,7 @@ function dismissImportBanner() {
 // ── Snapshot modal ────────────────────────────────────────────────────────────
 
 function openSnapshotModal() {
-  const today = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-  document.getElementById('snapshot-list-name').value = `Snapshot – ${today}`;
-  document.getElementById('snapshot-urls').value = '';
   document.getElementById('snapshot-modal').classList.remove('hidden');
-  document.getElementById('snapshot-urls').focus();
 }
 
 function closeSnapshotModal() {
@@ -3215,7 +3224,6 @@ document.getElementById('archive-list-btn').addEventListener('click', async () =
 // Delete — open confirmation modal
 document.getElementById('delete-list-btn').addEventListener('click', () => {
   if (!selectedListId) return;
-  document.getElementById('detail-overflow-menu').classList.add('hidden');
   const list = currentLists.find(l => l.id == selectedListId)
     || archivedLists.find(l => l.id == selectedListId);
   const name = list ? list.name : 'this workspace';
@@ -3307,7 +3315,6 @@ document.getElementById('detail-url-list').addEventListener('blur', async e => {
 
 document.getElementById('snapshot-btn').addEventListener('click', openSnapshotModal);
 document.getElementById('modal-cancel').addEventListener('click', closeSnapshotModal);
-document.getElementById('modal-import').addEventListener('click', importSnapshot);
 document.getElementById('snapshot-modal').addEventListener('click', e => {
   if (e.target === e.currentTarget) closeSnapshotModal();
 });
