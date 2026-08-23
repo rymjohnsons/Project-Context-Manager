@@ -572,15 +572,35 @@
       border-radius: 14px; padding: 2.5rem 2rem; margin-bottom: 2rem;
       text-align: center;
     }
+    .dash-hero-inner {
+      display: flex; align-items: center; justify-content: center;
+    }
+    .dash-hero-primary  { padding: 0 2rem; }
+    .dash-hero-secondary { padding: 0 2rem; min-width: 130px; }
+    .dash-hero-divider {
+      width: 1px; height: 56px; background: rgba(197,216,240,0.25); flex-shrink: 0;
+    }
     .dash-hero-stat {
       font-size: 2.75rem; font-weight: 800; color: #FFFFFF;
       letter-spacing: -0.03em; line-height: 1;
     }
+    .dash-hero-stat--sm { font-size: 1.6rem; }
     .dash-hero-label {
-      font-size: 0.8rem; color: #C5D8F0; margin-top: 0.65rem; font-weight: 600;
+      font-size: 0.72rem; color: #C5D8F0; margin-top: 0.55rem; font-weight: 600;
       text-transform: uppercase; letter-spacing: 0.06em;
+      display: flex; align-items: center; justify-content: center; gap: 0.3rem;
     }
-    .dash-hero-sub { font-size: 0.72rem; color: #8EAAD8; margin-top: 0.3rem; }
+    .dash-info-wrap { position: relative; display: inline-flex; align-items: center; }
+    .dash-info-icon { color: #8EAAD8; cursor: default; font-size: 0.95em; line-height: 1; }
+    .dash-info-tooltip {
+      display: none; position: absolute; bottom: calc(100% + 6px); left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15,30,74,0.96); color: #C5D8F0;
+      font-size: 0.695rem; font-weight: 400; letter-spacing: 0; text-transform: none;
+      white-space: nowrap; padding: 0.4rem 0.7rem; border-radius: 6px;
+      pointer-events: none; z-index: 20;
+    }
+    .dash-info-wrap:hover .dash-info-tooltip { display: block; }
 
     .dash-section-label {
       font-size: 0.63rem; font-weight: 600; color: #8EAAD8;
@@ -1244,9 +1264,28 @@
       <!-- Normal dashboard content -->
       <div id="dashboard-content" class="hidden">
         <div class="dash-hero">
-          <div class="dash-hero-stat" id="dash-time-saved">—</div>
-          <div class="dash-hero-label">Time saved opening tabs</div>
-          <div class="dash-hero-sub">vs. opening each tab manually</div>
+          <div class="dash-hero-inner">
+            <div class="dash-hero-secondary">
+              <div class="dash-hero-stat dash-hero-stat--sm" id="dash-time-saved-month">—</div>
+              <div class="dash-hero-label">Time saved this month</div>
+            </div>
+            <div class="dash-hero-divider"></div>
+            <div class="dash-hero-primary">
+              <div class="dash-hero-stat" id="dash-time-saved">—</div>
+              <div class="dash-hero-label">
+                Total time saved
+                <span class="dash-info-wrap">
+                  <span class="dash-info-icon">ⓘ</span>
+                  <span class="dash-info-tooltip">Estimated at 40 seconds saved per tab opened vs. opening each manually.</span>
+                </span>
+              </div>
+            </div>
+            <div class="dash-hero-divider"></div>
+            <div class="dash-hero-secondary">
+              <div class="dash-hero-stat dash-hero-stat--sm" id="dash-time-saved-all">—</div>
+              <div class="dash-hero-label">Saved by all Tabrador users</div>
+            </div>
+          </div>
         </div>
 
         <div class="dash-section-label">Recently Used</div>
@@ -2326,8 +2365,11 @@ async function deleteAccount() {
 function formatTimeSaved(totalSeconds) {
   if (!totalSeconds) return '0 minutes';
   if (totalSeconds < 60) return `${totalSeconds} second${totalSeconds !== 1 ? 's' : ''}`;
-  const hours   = Math.floor(totalSeconds / 3600);
+  const days    = Math.floor(totalSeconds / 86400);
+  const hours   = Math.floor((totalSeconds % 86400) / 3600);
   const minutes = Math.floor((totalSeconds % 3600) / 60);
+  if (days > 0 && hours > 0) return `${days} day${days !== 1 ? 's' : ''} ${hours} hr${hours !== 1 ? 's' : ''}`;
+  if (days > 0) return `${days} day${days !== 1 ? 's' : ''}`;
   if (hours > 0 && minutes > 0)
     return `${hours} hour${hours !== 1 ? 's' : ''} ${minutes} minute${minutes !== 1 ? 's' : ''}`;
   if (hours > 0) return `${hours} hour${hours !== 1 ? 's' : ''}`;
@@ -2360,7 +2402,9 @@ async function loadDashboard() {
       limitBannerEl.classList.add('hidden');
     }
 
-    document.getElementById('dash-time-saved').textContent      = formatTimeSaved(data.time_saved_seconds);
+    document.getElementById('dash-time-saved').textContent       = formatTimeSaved(data.time_saved_seconds);
+    document.getElementById('dash-time-saved-month').textContent = formatTimeSaved(data.time_saved_month_seconds);
+    document.getElementById('dash-time-saved-all').textContent   = formatTimeSaved(data.all_users_time_saved_seconds);
     document.getElementById('dash-num-shared-by').textContent   = data.shared_by_me;
     document.getElementById('dash-num-shared-with').textContent = data.shared_with_me;
     document.getElementById('dash-num-total').textContent       = data.total_workspaces;

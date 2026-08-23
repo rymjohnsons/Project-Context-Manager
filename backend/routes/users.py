@@ -25,6 +25,7 @@ except ImportError:
     _log_boot.warning("resend installed successfully")
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 import models
@@ -189,6 +190,25 @@ def get_dashboard(
     tabs_opened        = current_user.tabs_opened or 0
     time_saved_seconds = tabs_opened * 40
 
+    # "This month" stat: count URLs in this user's lists opened since the 1st of the current month.
+    # Each URL is counted once even if opened multiple times (best approximation without an events table).
+    now         = datetime.now(timezone.utc)
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    tabs_this_month = (
+        db.query(func.count(models.Url.id))
+        .join(models.List, models.Url.list_id == models.List.id)
+        .filter(
+            models.List.owner_id     == current_user.id,
+            models.Url.last_opened   >= month_start,
+        )
+        .scalar() or 0
+    )
+    time_saved_month_seconds = tabs_this_month * 40
+
+    # All-users aggregate: sum of every user's cumulative tabs_opened counter.
+    all_tabs = db.query(func.sum(models.User.tabs_opened)).scalar() or 0
+    all_users_time_saved_seconds = int(all_tabs) * 40
+
     recent = (
         db.query(models.List)
         .filter(
@@ -243,6 +263,8 @@ def get_dashboard(
     return schemas.DashboardOut(
         tabs_opened=tabs_opened,
         time_saved_seconds=time_saved_seconds,
+        time_saved_month_seconds=time_saved_month_seconds,
+        all_users_time_saved_seconds=all_users_time_saved_seconds,
         recent_workspaces=recent_workspaces,
         total_workspaces=total_workspaces,
         shared_by_me=shared_by_me,

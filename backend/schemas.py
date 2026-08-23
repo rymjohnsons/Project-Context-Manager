@@ -146,12 +146,14 @@ class RecentWorkspace(BaseModel):
 
 
 class DashboardOut(BaseModel):
-    tabs_opened:        int
-    time_saved_seconds: int
-    recent_workspaces:  list[RecentWorkspace]
-    total_workspaces:   int
-    shared_by_me:       int
-    shared_with_me:     int
+    tabs_opened:                  int
+    time_saved_seconds:           int
+    time_saved_month_seconds:     int
+    all_users_time_saved_seconds: int
+    recent_workspaces:            list[RecentWorkspace]
+    total_workspaces:             int
+    shared_by_me:                 int
+    shared_with_me:               int
 
 
 # ── Password reset schemas ─────────────────────────────────────────────────────
