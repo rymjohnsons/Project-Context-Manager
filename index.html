@@ -623,6 +623,27 @@
     .trial-upgrade-btn:hover:not(:disabled) { background: #C5D8F0; }
     .trial-upgrade-btn:disabled { opacity: 0.7; cursor: default; }
 
+    /* ── Limit banner (free-tier at-limit nudge on dashboard) ── */
+    .limit-banner {
+      background: rgba(30,58,138,0.07); border: 1px solid rgba(142,170,216,0.4);
+      border-radius: 8px; margin-bottom: 1.5rem;
+      padding: 0.65rem 1rem;
+      display: flex; align-items: center; gap: 0.75rem;
+      font-size: 0.82rem; line-height: 1.45; flex-wrap: wrap;
+      color: #1E3A8A;
+    }
+    .limit-banner.hidden { display: none; }
+    .limit-banner-text { flex: 1; min-width: 0; }
+    .limit-banner-text strong { color: #0F1E4A; }
+    .limit-banner-upgrade-btn {
+      background: #1E3A8A; color: #F4F1EA; border: none; border-radius: 6px;
+      padding: 0.35rem 0.9rem; font-size: 0.8rem; font-weight: 600;
+      cursor: pointer; font-family: inherit; flex-shrink: 0; white-space: nowrap;
+      transition: background 0.12s;
+    }
+    .limit-banner-upgrade-btn:hover:not(:disabled) { background: #0F1E4A; }
+    .limit-banner-upgrade-btn:disabled { opacity: 0.7; cursor: default; }
+
     /* ── Empty states ── */
     .empty-state-block {
       display: flex; flex-direction: column; align-items: center;
@@ -870,6 +891,9 @@
     .settings-danger-title { color: #dc2626; }
     .settings-danger-desc { font-size: 0.83rem; color: #b91c1c; line-height: 1.6; margin-bottom: 1rem; }
     .settings-delete-confirm { margin-top: 0.9rem; }
+    .settings-pro-badge { color: #059669; font-weight: 600; }
+    .settings-upgrade-desc { font-size: 0.82rem; color: #8EAAD8; line-height: 1.5; margin: 0.75rem 0 0.9rem; }
+    .sidebar-footer-btn.sidebar-upgrade { color: #C5D8F0; font-weight: 500; }
     .btn-danger {
       background: #dc2626; color: white; border: none; border-radius: 6px;
       padding: 0.5rem 1.1rem; font-size: 0.875rem; font-weight: 500; cursor: pointer;
@@ -1030,6 +1054,7 @@
       <!-- TERMINOLOGY: "Capture Current Session" was "Snapshot Tabs" -->
       <button id="snapshot-btn" class="sidebar-footer-btn snapshot">⊞ Capture Session</button>
       <button id="sidebar-account-settings" class="sidebar-footer-btn">⚙ Account Settings</button>
+      <button id="sidebar-upgrade-btn" class="sidebar-footer-btn sidebar-upgrade hidden">✦ Upgrade to Pro</button>
       <div class="sidebar-user">
         <span id="user-email" class="user-email-label"></span>
         <button id="logout-btn" class="btn-logout">Log out</button>
@@ -1069,6 +1094,12 @@
 
     <!-- DASHBOARD: landing page shown after login -->
     <div id="dashboard" class="dashboard">
+
+      <!-- BILLING: free-tier limit nudge — shown when non-pro user is at 3-workspace cap -->
+      <div id="limit-banner" class="limit-banner hidden">
+        <span class="limit-banner-text">You've used all 3 free workspaces. <strong>Upgrade to Tabrador Pro</strong> for unlimited workspaces and email sharing.</span>
+        <button class="limit-banner-upgrade-btn" id="limit-upgrade-btn">Upgrade to Pro</button>
+      </div>
 
       <!-- Skeleton: shown while dashboard data is loading -->
       <div id="dashboard-skeleton" class="hidden">
@@ -1268,6 +1299,12 @@
         </div>
       </div>
 
+      <!-- Subscription -->
+      <div class="settings-section" id="settings-subscription-section">
+        <div class="settings-section-title">Subscription</div>
+        <div id="settings-subscription-content"><!-- populated by loadAccountSettings --></div>
+      </div>
+
       <!-- Change Password -->
       <div class="settings-section">
         <div class="settings-section-title">Change Password</div>
@@ -1435,6 +1472,18 @@
     <div class="modal-actions">
       <button class="btn-secondary" id="delete-confirm-cancel">Cancel</button>
       <button class="btn-danger"    id="delete-confirm-ok">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Free-tier upgrade modal -->
+<div id="upgrade-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="upgrade-modal-title">
+  <div class="modal modal--confirm">
+    <h2 id="upgrade-modal-title">You've reached the free plan limit</h2>
+    <p style="margin:0.75rem 0 1.25rem;">Free accounts include up to 3 workspaces. Upgrade to Tabrador Pro for unlimited workspaces and email sharing.</p>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="upgrade-modal-cancel">Maybe later</button>
+      <button class="btn-primary"   id="upgrade-modal-ok">Upgrade to Pro</button>
     </div>
   </div>
 </div>
@@ -1738,7 +1787,11 @@ async function createFromTemplate(templateKey) {
     await render();
     showErrorToast(''); // clear any previous
   } catch (e) {
-    showErrorToast(e.message);
+    if (e.message && e.message.includes('free tier limit')) {
+      openUpgradeModal();
+    } else {
+      showErrorToast(e.message);
+    }
   }
 }
 
@@ -1817,9 +1870,17 @@ function _saveActiveWorkspaces() { localStorage.setItem('pcm_active_workspaces',
 async function createList(name) {
   // TERMINOLOGY: "Untitled Workspace" was "Untitled List"
   name = (name || '').trim() || 'Untitled Workspace';
-  const newList = await apiFetch('/lists', { method: 'POST', body: JSON.stringify({ name }) });
-  if (newList && newList.id) selectedListId = newList.id;
-  await render();
+  try {
+    const newList = await apiFetch('/lists', { method: 'POST', body: JSON.stringify({ name }) });
+    if (newList && newList.id) selectedListId = newList.id;
+    await render();
+  } catch (e) {
+    if (e.message && e.message.includes('free tier limit')) {
+      openUpgradeModal();
+    } else {
+      showErrorToast(e.message || 'Could not create workspace.');
+    }
+  }
 }
 
 async function deleteList(id) {
@@ -2037,6 +2098,9 @@ function showTrialBanner() {
   const upgradeEl = document.getElementById('trial-upgrade-btn');
   const user      = currentUser;
 
+  const sidebarUpgradeBtn = document.getElementById('sidebar-upgrade-btn');
+  if (sidebarUpgradeBtn) sidebarUpgradeBtn.classList.toggle('hidden', !user || user.plan === 'pro' || user.comped);
+
   if (!user || _isPro(user)) {
     bannerEl.classList.add('hidden');
     return;
@@ -2062,16 +2126,28 @@ function showTrialBanner() {
   upgradeEl.classList.remove('hidden');
 }
 
-async function startUpgrade() {
-  const btn = document.getElementById('trial-upgrade-btn');
+async function _doCheckout(btn) {
+  const origText = btn ? btn.textContent : 'Upgrade to Pro';
   if (btn) { btn.disabled = true; btn.textContent = 'Redirecting…'; }
   try {
     const { url } = await apiFetch('/billing/create-checkout-session', { method: 'POST' });
     window.location.href = url;
   } catch (e) {
     showErrorToast(e.message || 'Could not start checkout — please try again.');
-    if (btn) { btn.disabled = false; btn.textContent = 'Upgrade to Pro'; }
+    if (btn) { btn.disabled = false; btn.textContent = origText; }
   }
+}
+
+async function startUpgrade() {
+  _doCheckout(document.getElementById('trial-upgrade-btn'));
+}
+
+function openUpgradeModal() {
+  document.getElementById('upgrade-modal').classList.remove('hidden');
+}
+
+function closeUpgradeModal() {
+  document.getElementById('upgrade-modal').classList.add('hidden');
 }
 
 // ── Shared Out view ──────────────────────────────────────────────────────────
@@ -2156,6 +2232,28 @@ async function loadAccountSettings() {
     const d = new Date(user.created_at);
     document.getElementById('settings-created-at').textContent =
       d.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+    const isPayingPro = user.plan === 'pro' || user.comped;
+    const subEl = document.getElementById('settings-subscription-content');
+    if (isPayingPro) {
+      const label = user.comped ? 'Tabrador Pro (Comped)' : 'Tabrador Pro';
+      subEl.innerHTML = `
+        <div class="settings-row">
+          <span class="settings-label">Plan</span>
+          <span class="settings-value settings-pro-badge">✓ ${esc(label)}</span>
+        </div>`;
+    } else {
+      const inTrial = user.trial_ends_at && new Date(user.trial_ends_at) > new Date();
+      const planLabel = inTrial ? 'Free trial' : 'Free tier';
+      subEl.innerHTML = `
+        <div class="settings-row">
+          <span class="settings-label">Plan</span>
+          <span class="settings-value">${esc(planLabel)} · up to 3 workspaces</span>
+        </div>
+        <p class="settings-upgrade-desc">Upgrade to Tabrador Pro for unlimited workspaces and email sharing with teammates.</p>
+        <button class="btn-primary" id="settings-upgrade-btn">Upgrade to Pro</button>`;
+      document.getElementById('settings-upgrade-btn').addEventListener('click', function() { _doCheckout(this); });
+    }
   } catch { /* silent */ }
 }
 
@@ -2242,6 +2340,13 @@ async function loadDashboard() {
 
     contentEl.classList.remove('hidden');
 
+    const limitBannerEl = document.getElementById('limit-banner');
+    if (!_isPro(currentUser) && data.total_workspaces >= 3) {
+      limitBannerEl.classList.remove('hidden');
+    } else {
+      limitBannerEl.classList.add('hidden');
+    }
+
     document.getElementById('dash-time-saved').textContent      = formatTimeSaved(data.time_saved_seconds);
     document.getElementById('dash-num-shared-by').textContent   = data.shared_by_me;
     document.getElementById('dash-num-shared-with').textContent = data.shared_with_me;
@@ -2279,10 +2384,8 @@ async function loadDashboard() {
 function showDashboard() {
   currentView    = 'dashboard';
   selectedListId = null;
+  _hideAllViews();
   document.getElementById('dashboard').classList.remove('hidden');
-  document.getElementById('welcome-state').classList.add('hidden');
-  document.getElementById('list-detail').classList.add('hidden');
-  document.getElementById('shared-out-view').classList.add('hidden');
   document.querySelectorAll('.nav-item--active').forEach(el => el.classList.remove('nav-item--active'));
   document.getElementById('sidebar-home').classList.add('nav-item--active');
   loadDashboard();
@@ -3303,6 +3406,19 @@ document.getElementById('shared-out-list').addEventListener('click', async e => 
 
 // BILLING: upgrade button in trial banner
 document.getElementById('trial-upgrade-btn').addEventListener('click', startUpgrade);
+
+// Upgrade modal
+document.getElementById('upgrade-modal').addEventListener('click', e => {
+  if (e.target === document.getElementById('upgrade-modal')) closeUpgradeModal();
+});
+document.getElementById('upgrade-modal-cancel').addEventListener('click', closeUpgradeModal);
+document.getElementById('upgrade-modal-ok').addEventListener('click', function() { _doCheckout(this); });
+
+// Limit banner upgrade button
+document.getElementById('limit-upgrade-btn').addEventListener('click', function() { _doCheckout(this); });
+
+// Sidebar upgrade button
+document.getElementById('sidebar-upgrade-btn').addEventListener('click', function() { _doCheckout(this); });
 
 // TEMPLATE: template picker
 document.getElementById('template-btn').addEventListener('click', openTemplateModal);
