@@ -38,6 +38,7 @@ class List(Base):
     id          = Column(Integer, primary_key=True, index=True)
     name        = Column(String, nullable=False)
     starred     = Column(Boolean, default=False, nullable=False)
+    archived    = Column(Boolean, default=False, nullable=False)
     owner_id    = Column(Integer, ForeignKey("users.id"), nullable=False)
     created_at  = Column(DateTime(timezone=True), default=utcnow)
     # DASHBOARD: updated whenever any resource in this list is opened via Start Working

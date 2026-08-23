@@ -193,6 +193,7 @@ def get_dashboard(
         db.query(models.List)
         .filter(
             models.List.owner_id   == current_user.id,
+            models.List.archived   == False,
             models.List.last_opened.isnot(None),
         )
         .order_by(models.List.last_opened.desc())
@@ -202,7 +203,8 @@ def get_dashboard(
 
     total_workspaces = (
         db.query(models.List)
-        .filter(models.List.owner_id == current_user.id)
+        .filter(models.List.owner_id == current_user.id,
+                models.List.archived == False)
         .count()
     )
 

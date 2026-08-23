@@ -314,6 +314,36 @@
     .btn-danger-outline { background: transparent; color: #8EAAD8; border: 1px solid transparent; padding: 0.4rem 0.75rem; font-size: 0.8rem; }
     .btn-danger-outline:hover { color: #dc2626; border-color: #dc2626; }
 
+    /* Detail-view overflow menu */
+    .detail-overflow-wrap { position: relative; }
+    .detail-overflow-menu {
+      position: absolute; top: calc(100% + 4px); right: 0;
+      background: #FFFFFF; border: 1px solid #C5D8F0; border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(30,58,138,0.12); min-width: 190px;
+      z-index: 100; overflow: hidden;
+    }
+    .detail-overflow-menu.hidden { display: none; }
+    .overflow-menu-item {
+      display: block; width: 100%; text-align: left;
+      background: none; border: none; cursor: pointer;
+      padding: 0.55rem 1rem; font-size: 0.82rem;
+      font-family: inherit; color: #0F1E4A; transition: background 0.1s;
+    }
+    .overflow-menu-item:hover { background: #F4F1EA; }
+    .overflow-menu-item--danger { color: #dc2626; }
+    .overflow-menu-item--danger:hover { background: #FEF2F2; }
+
+    /* Archived badge in detail header */
+    .detail-archived-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      font-size: 0.72rem; font-weight: 600; color: #8EAAD8; flex-shrink: 0;
+    }
+    .detail-archived-badge::before {
+      content: ''; display: inline-block; border-radius: 3px;
+      width: 7px; height: 7px; background: #8EAAD8;
+    }
+    .detail-archived-badge.hidden { display: none; }
+
     .btn-star        { background: transparent; color: #8EAAD8; border: 1px solid transparent; padding: 0.4rem 0.75rem; font-size: 0.8rem; }
     .btn-star:hover  { color: #f59e0b; border-color: #f59e0b; }
     .btn-star.starred { color: #f59e0b; }
@@ -986,6 +1016,13 @@
         <div id="sidebar-starred-lists"></div>
       </div>
 
+      <div class="nav-section">
+        <div class="nav-section-header">
+          <span class="nav-section-label">Archived</span>
+        </div>
+        <div id="sidebar-archived-lists"></div>
+      </div>
+
     </div><!-- /.sidebar-scroll -->
 
     <div class="sidebar-footer">
@@ -1276,16 +1313,23 @@
             <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11.5 2.5a2.121 2.121 0 0 1 3 3l-8 8-4 1 1-4 8-8z"/></svg>
           </button>
           <span id="detail-url-count" class="detail-url-count"></span>
-          <span id="detail-active-badge" class="detail-active-badge hidden">Active</span>
+          <span id="detail-active-badge"   class="detail-active-badge hidden">Active</span>
+          <span id="detail-archived-badge" class="detail-archived-badge hidden">Archived</span>
         </div>
         <div id="detail-favicons" class="detail-favicons"></div>
         <div class="detail-action-bar">
           <!-- TERMINOLOGY: "Start Working" was "Open All", "Wrap Up" was "Close All", "Delete Workspace" was "Delete List" -->
-          <button id="open-all-btn"    class="btn-open">Start Working ↗</button>
-          <button id="close-all-btn"   class="btn-close hidden">Wrap Up</button>
-          <button id="star-btn"        class="btn-star">☆ Star</button>
-          <button id="invite-btn"      class="btn-share">Invite</button>
-          <button id="delete-list-btn" class="btn-danger-outline">Delete Workspace</button>
+          <button id="open-all-btn"  class="btn-open">Start Working ↗</button>
+          <button id="close-all-btn" class="btn-close hidden">Wrap Up</button>
+          <button id="star-btn"      class="btn-star">☆ Star</button>
+          <button id="invite-btn"    class="btn-share">Invite</button>
+          <div class="detail-overflow-wrap">
+            <button id="detail-overflow-btn" class="btn-danger-outline" title="More options">•••</button>
+            <div id="detail-overflow-menu" class="detail-overflow-menu hidden">
+              <button id="archive-list-btn" class="overflow-menu-item">Archive Workspace</button>
+              <button id="delete-list-btn"  class="overflow-menu-item overflow-menu-item--danger">Delete Workspace</button>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -1740,6 +1784,7 @@ let selectedListId    = null;
 let currentView       = 'dashboard'; // 'dashboard' | 'workspace'
 let sharedWorkspaces  = []; // workspaces shared with current user (summary from /shared-with-me)
 let sharedListDetails = []; // full List data for shared workspaces (fetched on click)
+let archivedLists     = []; // owner's archived workspaces (fetched alongside currentLists)
 let sharedOutData     = []; // workspaces I've shared with others (for Shared Out view)
 let currentShares     = []; // shares for the currently selected workspace (owner view)
 const trackedWindows        = {};
@@ -1770,6 +1815,28 @@ async function deleteList(id) {
   delete trackedWindows[id];
   if (selectedListId == id) selectedListId = null;
   await render();
+}
+
+async function archiveList(id) {
+  const updated = await apiFetch(`/lists/${id}/archive`, { method: 'POST' });
+  const idx = currentLists.findIndex(l => l.id == id);
+  if (idx !== -1) {
+    const [list] = currentLists.splice(idx, 1);
+    archivedLists.push({ ...list, ...updated });
+  }
+  renderSidebar();
+  renderDetail();
+}
+
+async function unarchiveList(id) {
+  const updated = await apiFetch(`/lists/${id}/unarchive`, { method: 'POST' });
+  const idx = archivedLists.findIndex(l => l.id == id);
+  if (idx !== -1) {
+    const [list] = archivedLists.splice(idx, 1);
+    currentLists.push({ ...list, ...updated });
+  }
+  renderSidebar();
+  renderDetail();
 }
 
 async function renameList(id, newName) {
@@ -2600,9 +2667,11 @@ function renderSidebar() {
   const myListsContainer   = document.getElementById('sidebar-lists');
   const teamContainer      = document.getElementById('sidebar-team-workspaces');
   const starredContainer   = document.getElementById('sidebar-starred-lists');
-  myListsContainer.innerHTML = '';
-  teamContainer.innerHTML    = '';
-  starredContainer.innerHTML = '';
+  const archivedContainer  = document.getElementById('sidebar-archived-lists');
+  myListsContainer.innerHTML  = '';
+  teamContainer.innerHTML     = '';
+  starredContainer.innerHTML  = '';
+  archivedContainer.innerHTML = '';
 
   if (currentLists.length === 0) {
     const p = document.createElement('p');
@@ -2640,6 +2709,15 @@ function renderSidebar() {
     starredContainer.appendChild(p);
   } else {
     starred.forEach(list => starredContainer.appendChild(buildNavItem(list)));
+  }
+
+  if (archivedLists.length === 0) {
+    const p = document.createElement('p');
+    p.className   = 'nav-coming-soon';
+    p.textContent = 'No archived workspaces.';
+    archivedContainer.appendChild(p);
+  } else {
+    archivedLists.forEach(list => archivedContainer.appendChild(buildNavItem(list)));
   }
 }
 
@@ -2734,12 +2812,19 @@ function renderDetail() {
     return;
   }
 
-  const list = currentLists.find(l => l.id == selectedListId) || sharedListDetails.find(l => l.id == selectedListId);
+  const list = currentLists.find(l => l.id == selectedListId)
+    || archivedLists.find(l => l.id == selectedListId)
+    || sharedListDetails.find(l => l.id == selectedListId);
   if (!list) {
     selectedListId = null;
     document.getElementById('welcome-state').classList.remove('hidden');
     return;
   }
+
+  const isArchived = !!list.archived;
+  document.getElementById('archive-list-btn').textContent =
+    isArchived ? 'Unarchive Workspace' : 'Archive Workspace';
+  document.getElementById('detail-archived-badge').classList.toggle('hidden', !isArchived);
 
   const welcomeEl = document.getElementById('welcome-state');
   const detailEl  = document.getElementById('list-detail');
@@ -2881,7 +2966,10 @@ let _firstRender = true;
 
 async function render() {
   try {
-    currentLists = await apiFetch('/lists');
+    [currentLists, archivedLists] = await Promise.all([
+      apiFetch('/lists'),
+      apiFetch('/lists/archived').catch(() => []),
+    ]);
     _firstRender = false;
   } catch (e) {
     _firstRender = false;
@@ -2985,11 +3073,38 @@ document.getElementById('invite-shares-list').addEventListener('change', e => {
   if (sel) updateSharePermission(parseInt(sel.dataset.shareId), sel.value);
 });
 
+// Overflow menu toggle
+document.getElementById('detail-overflow-btn').addEventListener('click', e => {
+  e.stopPropagation();
+  document.getElementById('detail-overflow-menu').classList.toggle('hidden');
+});
+document.addEventListener('click', () => {
+  document.getElementById('detail-overflow-menu').classList.add('hidden');
+});
+
+// Archive / Unarchive
+document.getElementById('archive-list-btn').addEventListener('click', async () => {
+  if (!selectedListId) return;
+  document.getElementById('detail-overflow-menu').classList.add('hidden');
+  const isArchived = archivedLists.some(l => l.id == selectedListId);
+  const btn = document.getElementById('archive-list-btn');
+  btn.disabled = true;
+  try {
+    if (isArchived) await unarchiveList(selectedListId);
+    else            await archiveList(selectedListId);
+  } catch (e) { showErrorToast(e.message); }
+  btn.disabled = false;
+});
+
+// Delete
 document.getElementById('delete-list-btn').addEventListener('click', async () => {
   if (!selectedListId) return;
+  document.getElementById('detail-overflow-menu').classList.add('hidden');
   const btn = document.getElementById('delete-list-btn');
   btn.disabled = true; btn.textContent = '…';
-  await deleteList(selectedListId);
+  try {
+    await deleteList(selectedListId);
+  } catch (e) { showErrorToast(e.message); }
   btn.disabled = false; btn.textContent = 'Delete Workspace';
 });
 

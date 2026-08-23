@@ -263,7 +263,19 @@ def get_lists(
 ):
     return (
         db.query(models.List)
-        .filter(models.List.owner_id == current_user.id)
+        .filter(models.List.owner_id == current_user.id, models.List.archived == False)
+        .all()
+    )
+
+
+@router.get("/archived", response_model=list[schemas.ListOut])
+def get_archived_lists(
+    db:           Session      = Depends(get_db),
+    current_user: models.User  = Depends(auth.get_current_user),
+):
+    return (
+        db.query(models.List)
+        .filter(models.List.owner_id == current_user.id, models.List.archived == True)
         .all()
     )
 
@@ -274,10 +286,11 @@ def create_list(
     db:           Session     = Depends(get_db),
     current_user: models.User = Depends(auth.get_current_user),
 ):
-    # BILLING: free-tier users are capped at 3 workspaces
+    # BILLING: free-tier users are capped at 3 non-archived workspaces
     if not is_pro(current_user):
         existing = db.query(models.List)\
-                     .filter(models.List.owner_id == current_user.id)\
+                     .filter(models.List.owner_id == current_user.id,
+                             models.List.archived == False)\
                      .count()
         if existing >= FREE_TIER_WORKSPACE_LIMIT:
             raise HTTPException(
@@ -331,6 +344,40 @@ def star_list(
     if lst.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Only the workspace owner can star it.")
     lst.starred = star_in.starred
+    db.commit()
+    db.refresh(lst)
+    return lst
+
+
+@router.post("/{list_id}/archive", response_model=schemas.ListOut)
+def archive_list(
+    list_id:      int,
+    db:           Session     = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    lst = db.query(models.List).filter(models.List.id == list_id).first()
+    if lst is None:
+        raise HTTPException(status_code=404, detail="Workspace not found.")
+    if lst.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the workspace owner can archive it.")
+    lst.archived = True
+    db.commit()
+    db.refresh(lst)
+    return lst
+
+
+@router.post("/{list_id}/unarchive", response_model=schemas.ListOut)
+def unarchive_list(
+    list_id:      int,
+    db:           Session     = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    lst = db.query(models.List).filter(models.List.id == list_id).first()
+    if lst is None:
+        raise HTTPException(status_code=404, detail="Workspace not found.")
+    if lst.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the workspace owner can unarchive it.")
+    lst.archived = False
     db.commit()
     db.refresh(lst)
     return lst

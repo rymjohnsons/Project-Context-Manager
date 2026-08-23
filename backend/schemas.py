@@ -50,6 +50,7 @@ class ListOut(BaseModel):
     id:       int
     name:     str
     starred:  bool = False
+    archived: bool = False
     owner_id: int
     urls:     list[UrlOut] = []
 
