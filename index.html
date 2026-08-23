@@ -386,6 +386,7 @@
     .modal-actions { display: flex; gap: 0.5rem; justify-content: flex-end; }
 
     .modal--transfer { width: 360px; }
+    .modal--confirm  { width: 380px; }
     .modal-field { display: flex; flex-direction: column; gap: 0.4rem; margin: 1rem 0 1.25rem; }
     .modal-field label { font-size: 0.8rem; color: #8EAAD8; font-weight: 500; }
     .modal-select {
@@ -1422,6 +1423,18 @@
     </div>
     <div class="modal-actions">
       <button class="btn-secondary" id="template-cancel">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete workspace confirmation modal -->
+<div id="delete-confirm-modal" class="modal-overlay hidden" role="dialog" aria-modal="true" aria-labelledby="delete-confirm-title">
+  <div class="modal modal--confirm">
+    <h2 id="delete-confirm-title">Delete Workspace?</h2>
+    <p id="delete-confirm-body" style="margin:0.75rem 0 1.25rem;">Are you sure you want to delete this workspace? This cannot be undone.</p>
+    <div class="modal-actions">
+      <button class="btn-secondary" id="delete-confirm-cancel">Cancel</button>
+      <button class="btn-danger"    id="delete-confirm-ok">Delete</button>
     </div>
   </div>
 </div>
@@ -3096,16 +3109,38 @@ document.getElementById('archive-list-btn').addEventListener('click', async () =
   btn.disabled = false;
 });
 
-// Delete
-document.getElementById('delete-list-btn').addEventListener('click', async () => {
+// Delete — open confirmation modal
+document.getElementById('delete-list-btn').addEventListener('click', () => {
   if (!selectedListId) return;
   document.getElementById('detail-overflow-menu').classList.add('hidden');
-  const btn = document.getElementById('delete-list-btn');
-  btn.disabled = true; btn.textContent = '…';
+  const list = currentLists.find(l => l.id == selectedListId)
+    || archivedLists.find(l => l.id == selectedListId);
+  const name = list ? list.name : 'this workspace';
+  document.getElementById('delete-confirm-body').textContent =
+    `Are you sure you want to delete "${name}"? This cannot be undone.`;
+  document.getElementById('delete-confirm-modal').classList.remove('hidden');
+});
+
+function closeDeleteConfirmModal() {
+  document.getElementById('delete-confirm-modal').classList.add('hidden');
+}
+
+document.getElementById('delete-confirm-cancel').addEventListener('click', closeDeleteConfirmModal);
+document.getElementById('delete-confirm-modal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeDeleteConfirmModal();
+});
+
+document.getElementById('delete-confirm-ok').addEventListener('click', async () => {
+  if (!selectedListId) return;
+  const btn = document.getElementById('delete-confirm-ok');
+  btn.disabled = true; btn.textContent = 'Deleting…';
   try {
     await deleteList(selectedListId);
-  } catch (e) { showErrorToast(e.message); }
-  btn.disabled = false; btn.textContent = 'Delete Workspace';
+    closeDeleteConfirmModal();
+  } catch (e) {
+    showErrorToast(e.message);
+    btn.disabled = false; btn.textContent = 'Delete';
+  }
 });
 
 document.getElementById('detail-list-name').addEventListener('change', async e => {
