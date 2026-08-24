@@ -111,19 +111,22 @@
     /* Nav list items — card-style, inset from sidebar edges */
     .nav-item {
       display: flex; align-items: center; gap: 0.4rem;
-      padding: 0.42rem 0.65rem; cursor: pointer;
-      margin: 1px 6px;
+      padding: 0.55rem 0.65rem; cursor: pointer;
+      margin: 2px 6px;
       border-radius: 8px;
       border-left: 2px solid transparent; transition: background 0.1s;
     }
     .nav-item:hover { background: rgba(45,79,160,0.85); }
-    .nav-item--active { background: #2D4FA0; border-left-color: #C5D8F0; }
+    .nav-item--active {
+      background: rgba(197,216,240,0.14);
+      border-left-color: #C5D8F0;
+    }
     .nav-item--working::before {
       content: ''; width: 7px; height: 7px; border-radius: 50%;
       background: #22C55E; flex-shrink: 0;
     }
     .nav-item-name {
-      flex: 1; font-size: 0.8rem; color: #C5D8F0;
+      flex: 1; font-size: 0.9rem; font-weight: 600; color: #C5D8F0;
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     .nav-item--active .nav-item-name { color: #FFFFFF; }
