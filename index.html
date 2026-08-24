@@ -138,6 +138,11 @@
       padding: 1px 5px; border-radius: 3px; flex-shrink: 0;
     }
 
+    /* My Workspaces: flat/cardless resting state — no inset, no radius, no border */
+    #sidebar-lists .nav-item { margin: 0; border-radius: 0; }
+    /* Active item in My Workspaces keeps the lifted card treatment */
+    #sidebar-lists .nav-item.nav-item--active { margin: 2px 6px; border-radius: 8px; }
+
     .nav-favicon-strip {
       width: 100%; display: flex; align-items: center; gap: 4px;
       padding-top: 4px; padding-bottom: 1px; flex-wrap: wrap;
