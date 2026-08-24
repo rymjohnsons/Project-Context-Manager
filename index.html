@@ -5,6 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <!-- BRANDING: app renamed from "Project Context Manager" to "Tabrador" -->
   <title>Tabrador — Fetch your tabs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
   <style>
     /* Prevents white flash before boot-loader paints — matches navy brand colour */
     html { background: #1E3A8A; }
@@ -12,7 +15,7 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
       background: #F4F1EA;
       color: #0F1E4A;
       height: 100vh;
@@ -83,8 +86,8 @@
     }
     .nav-section-label {
       display: inline-flex; align-items: center;
-      font-size: 0.6rem; font-weight: 700; color: #8EAAD8;
-      letter-spacing: 0.09em; text-transform: uppercase;
+      font-size: 0.625rem; font-weight: 700; color: #8EAAD8;
+      letter-spacing: 0.14em; text-transform: uppercase;
       background: rgba(142, 170, 216, 0.1);
       border-left: 2px solid #8EAAD8;
       border-radius: 0 4px 4px 0;
@@ -126,7 +129,7 @@
       background: #22C55E; flex-shrink: 0;
     }
     .nav-item-name {
-      flex: 1; font-size: 0.9rem; font-weight: 700; color: #FFFFFF;
+      flex: 1; font-size: 0.875rem; font-weight: 600; color: #F4F1EA;
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     }
     .nav-item--active .nav-item-name { color: #FFFFFF; }
@@ -263,7 +266,8 @@
     /* .detail-url-item is defined in the additions block below */
 
     .detail-url-link {
-      flex: 1; color: #1E3A8A; text-decoration: none; font-size: 0.83rem;
+      flex: 1; color: #1E3A8A; text-decoration: none; font-size: 0.8rem;
+      font-family: 'Courier New', monospace;
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
     }
     .detail-url-link:hover { text-decoration: underline; color: #2D4FA0; }
