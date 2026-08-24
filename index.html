@@ -619,9 +619,18 @@
       border-color: #1E3A8A; box-shadow: 0 2px 8px rgba(30,58,138,0.08);
     }
     .dash-recent-name {
-      font-size: 0.83rem; font-weight: 600; color: #0F1E4A;
+      display: flex; align-items: center; gap: 0.35rem;
+      margin-bottom: 0.3rem; overflow: hidden;
+    }
+    .dash-recent-name-text {
+      flex: 1; min-width: 0; font-size: 0.83rem; font-weight: 600; color: #0F1E4A;
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-      margin-bottom: 0.3rem;
+    }
+    .dash-recent-team-badge {
+      font-size: 0.58rem; font-weight: 700; color: #1E3A8A;
+      background: rgba(197,216,240,0.5); border: 1px solid #C5D8F0;
+      border-radius: 20px; padding: 0.1rem 0.4rem; flex-shrink: 0;
+      letter-spacing: 0.04em; text-transform: uppercase;
     }
     .dash-recent-meta { font-size: 0.71rem; color: #8EAAD8; }
     .dash-empty-hint {
@@ -2417,16 +2426,38 @@ async function loadDashboard() {
       data.recent_workspaces.forEach(ws => {
         const card = document.createElement('div');
         card.className = 'dash-recent-card';
-        card.innerHTML = `
-          <div class="dash-recent-name">${esc(ws.name)}</div>
-          <div class="dash-recent-meta">
-            ${ws.url_count} resource${ws.url_count !== 1 ? 's' : ''}${ws.last_opened ? ' · ' + formatDate(ws.last_opened) : ''}
-          </div>`;
+
+        // Name row (with optional TEAM badge for shared workspaces)
+        const nameEl = document.createElement('div');
+        nameEl.className = 'dash-recent-name';
+        const nameText = document.createElement('span');
+        nameText.className = 'dash-recent-name-text';
+        nameText.textContent = ws.name;
+        nameEl.appendChild(nameText);
+        if (ws.is_shared) {
+          const badge = document.createElement('span');
+          badge.className = 'dash-recent-team-badge';
+          badge.textContent = 'Team';
+          nameEl.appendChild(badge);
+        }
+        card.appendChild(nameEl);
+
+        // Meta row
+        const metaParts = [`${ws.url_count} resource${ws.url_count !== 1 ? 's' : ''}`];
+        if (ws.last_opened) metaParts.push(formatDate(ws.last_opened));
+        if (ws.is_shared && ws.shared_by_email) metaParts.push(`from ${ws.shared_by_email.split('@')[0]}`);
+        const metaEl = document.createElement('div');
+        metaEl.className = 'dash-recent-meta';
+        metaEl.textContent = metaParts.join(' · ');
+        card.appendChild(metaEl);
+
+        // Favicon strip (owned workspaces only — shared detail loads on demand)
         const fullList = currentLists.find(l => l.id === ws.id);
         if (fullList && fullList.urls.length > 0) {
           const strip = buildFaviconStrip(fullList.urls, 16);
-          if (strip) card.querySelector('.dash-recent-name').after(strip);
+          if (strip) nameEl.after(strip);
         }
+
         card.addEventListener('click', () => selectList(ws.id));
         recentEl.appendChild(card);
       });

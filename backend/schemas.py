@@ -139,10 +139,12 @@ class SharedOutWorkspace(BaseModel):
 # ── Dashboard schemas ──────────────────────────────────────────────────────────
 
 class RecentWorkspace(BaseModel):
-    id:          int
-    name:        str
-    url_count:   int
-    last_opened: datetime | None = None
+    id:              int
+    name:            str
+    url_count:       int
+    last_opened:     datetime | None = None
+    is_shared:       bool            = False
+    shared_by_email: str | None      = None
 
 
 class DashboardOut(BaseModel):

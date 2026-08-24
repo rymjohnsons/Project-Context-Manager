@@ -209,7 +209,8 @@ def get_dashboard(
     all_tabs = db.query(func.sum(models.User.tabs_opened)).scalar() or 0
     all_users_time_saved_seconds = int(all_tabs) * 40
 
-    recent = (
+    # Owned recently-opened workspaces (fetch more than 5 to allow merging with shared)
+    owned_recent = (
         db.query(models.List)
         .filter(
             models.List.owner_id   == current_user.id,
@@ -217,9 +218,54 @@ def get_dashboard(
             models.List.last_opened.isnot(None),
         )
         .order_by(models.List.last_opened.desc())
-        .limit(5)
+        .limit(10)
         .all()
     )
+    owned_entries = [
+        schemas.RecentWorkspace(
+            id=lst.id,
+            name=lst.name,
+            url_count=len(lst.urls),
+            last_opened=lst.last_opened,
+            is_shared=False,
+        )
+        for lst in owned_recent
+    ]
+
+    # Shared workspaces the user has recently opened
+    shared_entries: list[schemas.RecentWorkspace] = []
+    try:
+        shares = (
+            db.query(models.WorkspaceShare)
+            .filter(
+                models.WorkspaceShare.recipient_id == current_user.id,
+                models.WorkspaceShare.status       == "claimed",
+            )
+            .all()
+        )
+        for share in shares:
+            ws = share.workspace
+            if ws and not ws.archived and ws.last_opened:
+                shared_entries.append(
+                    schemas.RecentWorkspace(
+                        id=ws.id,
+                        name=ws.name,
+                        url_count=len(ws.urls),
+                        last_opened=ws.last_opened,
+                        is_shared=True,
+                        shared_by_email=share.shared_by.email,
+                    )
+                )
+    except Exception as exc:
+        _log.warning("shared-recent query failed (migration pending?): %s", exc)
+
+    # Merge owned + shared, sort by last_opened desc, take top 5
+    _epoch = datetime.min.replace(tzinfo=timezone.utc)
+    recent_workspaces = sorted(
+        owned_entries + shared_entries,
+        key=lambda r: r.last_opened or _epoch,
+        reverse=True,
+    )[:5]
 
     total_workspaces = (
         db.query(models.List)
@@ -227,16 +273,6 @@ def get_dashboard(
                 models.List.archived == False)
         .count()
     )
-
-    recent_workspaces = [
-        schemas.RecentWorkspace(
-            id=lst.id,
-            name=lst.name,
-            url_count=len(lst.urls),
-            last_opened=lst.last_opened,
-        )
-        for lst in recent
-    ]
 
     # Wrap in try/except — workspace_shares may not exist yet if migration is pending
     try:
