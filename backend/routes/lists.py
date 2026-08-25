@@ -1,4 +1,8 @@
+import http.client
+import ipaddress
+import logging
 import re
+import socket
 import urllib.request
 from urllib.parse import urlparse
 from datetime import datetime, timezone
@@ -17,6 +21,7 @@ from billing import is_pro
 FREE_TIER_WORKSPACE_LIMIT = 3
 
 router = APIRouter(prefix="/lists", tags=["lists"])
+_log = logging.getLogger(__name__)
 
 
 def _require_safe_url(url: str) -> None:
@@ -60,15 +65,75 @@ def get_list_or_404(
 
 
 def _fetch_title(url: str) -> str | None:
-    """Return the <title> of the page at url, or None if unreachable/missing."""
+    """Fetch the <title> of the page at url, guarded against SSRF.
+
+    Resolves the hostname before fetching and rejects any IP in private,
+    loopback, or link-local ranges (covers cloud metadata endpoints like
+    169.254.169.254 and RFC-1918 networks).
+
+    For HTTP: connects directly to the pre-resolved IP (with the original
+    Host header) to close the DNS-rebinding TOCTOU gap — a second DNS
+    lookup in urllib could resolve to a different address.
+
+    For HTTPS: falls back to urlopen after the IP check; TLS certificate
+    validation provides a secondary defense against DNS rebinding because
+    internal services typically lack publicly-trusted certs.
+    """
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https"):
+        return None
+    hostname = parsed.hostname
+    if not hostname:
+        return None
+    port = parsed.port or (443 if parsed.scheme == "https" else 80)
+
+    # ── Resolve and validate every returned IP address ────────────────────
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
-        with urllib.request.urlopen(req, timeout=5) as resp:
-            if resp.status == 200:
+        addr_infos = socket.getaddrinfo(hostname, port, type=socket.SOCK_STREAM)
+    except socket.gaierror as exc:
+        _log.info("Title fetch skipped — DNS error for %s: %s", hostname, exc)
+        return None
+
+    for _fam, _type, _proto, _canon, sockaddr in addr_infos:
+        ip_str = sockaddr[0]
+        try:
+            ip = ipaddress.ip_address(ip_str)
+        except ValueError:
+            _log.info("Title fetch skipped — unparseable address %r for %s", ip_str, hostname)
+            return None
+        if (ip.is_private or ip.is_loopback or ip.is_link_local
+                or ip.is_multicast or ip.is_unspecified or ip.is_reserved):
+            _log.info("Title fetch skipped — blocked address %s for %s", ip_str, hostname)
+            return None
+
+    # ── Fetch ─────────────────────────────────────────────────────────────
+    try:
+        path = (parsed.path or "/") + (f"?{parsed.query}" if parsed.query else "")
+        html: str | None = None
+
+        if parsed.scheme == "http":
+            # Pin to the first pre-resolved IP to prevent a second DNS lookup.
+            pinned_ip = addr_infos[0][4][0]
+            conn = http.client.HTTPConnection(pinned_ip, port, timeout=5)
+            try:
+                conn.request("GET", path, headers={
+                    "User-Agent": "Mozilla/5.0",
+                    "Host": hostname,
+                })
+                resp = conn.getresponse()
+                if resp.status == 200:
+                    html = resp.read(65536).decode("utf-8", errors="ignore")
+            finally:
+                conn.close()
+        else:
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=5) as resp:
                 html = resp.read(65536).decode("utf-8", errors="ignore")
-                m = re.search(r'<title[^>]*>([^<]+)</title>', html, re.IGNORECASE)
-                if m:
-                    return m.group(1).strip()[:200]
+
+        if html:
+            m = re.search(r'<title[^>]*>([^<]+)</title>', html, re.IGNORECASE)
+            if m:
+                return m.group(1).strip()[:200]
     except Exception:
         pass
     return None
