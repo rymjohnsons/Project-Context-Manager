@@ -107,7 +107,7 @@ def root():
 @app.get("/app.js", tags=["frontend"])
 def serve_app_js():
     js = os.path.join(os.path.dirname(__file__), '..', 'app.js')
-    return FileResponse(os.path.abspath(js), media_type="application/javascript")
+    return FileResponse(os.path.abspath(js), media_type="application/javascript; charset=utf-8")
 
 
 @app.get("/reset-password", tags=["frontend"])

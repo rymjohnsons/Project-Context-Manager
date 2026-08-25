@@ -1,8 +1,8 @@
-﻿'use strict';
+'use strict';
 
-const API_BASE = ''; // relative â€” works on any domain (tabrador.app, Railway, localhost)
+const API_BASE = ''; // relative — works on any domain (tabrador.app, Railway, localhost)
 
-// â”€â”€ Auth token â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Auth token ────────────────────────────────────────────────────────────────
 
 function getToken()   { return localStorage.getItem('pcm_token'); }
 function setToken(t)  { localStorage.setItem('pcm_token', t); }
@@ -21,8 +21,8 @@ async function apiFetch(path, options = {}) {
       },
     });
   } catch {
-    // fetch() itself threw â€” server unreachable or no internet
-    throw new Error('Connection problem â€” please check your internet and try again.');
+    // fetch() itself threw — server unreachable or no internet
+    throw new Error('Connection problem — please check your internet and try again.');
   }
 
   if (res.status === 401) {
@@ -31,16 +31,16 @@ async function apiFetch(path, options = {}) {
     if (hadToken) {
       // Show the session-expired message on the auth screen before navigating
       showAuthScreen();
-      setAuthError('Your session expired â€” please log in again.');
+      setAuthError('Your session expired — please log in again.');
     }
     const err = await res.json().catch(() => ({}));
     throw new Error(hadToken
-      ? 'Your session expired â€” please log in again.'
+      ? 'Your session expired — please log in again.'
       : (err.detail || 'Incorrect email or password.'));
   }
 
   if (res.status === 429) {
-    throw new Error('Too many attempts â€” please wait a moment and try again.');
+    throw new Error('Too many attempts — please wait a moment and try again.');
   }
 
   if (res.status === 204) return null;
@@ -49,14 +49,14 @@ async function apiFetch(path, options = {}) {
     const err = await res.json().catch(() => ({}));
     const detail = Array.isArray(err.detail)
       ? err.detail.map(e => e.msg).join(', ')
-      : (err.detail || 'Something went wrong â€” please try again. If the problem continues, contact hello@tabrador.app.');
+      : (err.detail || 'Something went wrong — please try again. If the problem continues, contact hello@tabrador.app.');
     throw new Error(detail);
   }
 
   return res.json();
 }
 
-// â”€â”€ Auth screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Auth screen ───────────────────────────────────────────────────────────────
 
 let authMode = 'login';
 
@@ -107,7 +107,7 @@ function _showEmailExistsError() {
   el.innerHTML =
     'An account with that email already exists. ' +
     '<button class="auth-back-link" style="display:inline;padding:0;font-weight:600;color:#1E3A8A;" ' +
-    'id="_err-login-link">Log in instead â†’</button>';
+    'id="_err-login-link">Log in instead →</button>';
   el.classList.remove('hidden');
   document.getElementById('_err-login-link')
     ?.addEventListener('click', () => setAuthMode('login'));
@@ -118,7 +118,7 @@ async function submitAuth() {
   const password     = document.getElementById('auth-password').value;
   const isNewAccount = authMode === 'register';
 
-  // â”€â”€ Frontend validation â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Frontend validation ──────────────────────────────────────────────────
   if (!email || !password) {
     setAuthError('Please enter your email and password.');
     return;
@@ -131,11 +131,11 @@ async function submitAuth() {
     setAuthError('Password must be at least 8 characters.');
     return;
   }
-  // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ─────────────────────────────────────────────────────────────────────────
 
   const btn = document.getElementById('auth-submit');
   btn.disabled = true;
-  btn.textContent = 'Please waitâ€¦';
+  btn.textContent = 'Please wait…';
   setAuthError('');
 
   try {
@@ -169,7 +169,7 @@ async function submitAuth() {
     }
   } finally {
     btn.disabled = false;
-    // Restore button text directly â€” do NOT call setAuthMode() here because
+    // Restore button text directly — do NOT call setAuthMode() here because
     // setAuthMode always calls setAuthError('') which wipes the error message.
     btn.textContent = isNewAccount ? 'Create Account' : 'Log In';
   }
@@ -182,7 +182,7 @@ function logout() {
   showAuthScreen();
 }
 
-// â”€â”€ Onboarding â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Onboarding ────────────────────────────────────────────────────────────────
 // ONBOARDING: shown once after first account creation
 
 function showOnboarding() {
@@ -197,7 +197,7 @@ async function completeOnboarding(workType) {
         method: 'PATCH',
         body: JSON.stringify({ work_type: workType }),
       });
-    } catch { /* non-fatal â€” onboarding is optional */ }
+    } catch { /* non-fatal — onboarding is optional */ }
   }
   document.getElementById('onboarding-overlay').classList.add('hidden');
   const email = document.getElementById('user-email').textContent;
@@ -208,7 +208,7 @@ async function completeOnboarding(workType) {
   checkShareLink();
 }
 
-// â”€â”€ Workspace templates â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Workspace templates ────────────────────────────────────────────────────────
 // TEMPLATE: starter workspaces pre-loaded with placeholder resources
 
 const WORKSPACE_TEMPLATES = {
@@ -216,36 +216,36 @@ const WORKSPACE_TEMPLATES = {
     // TERMINOLOGY: "workspace" was "list"; "resources" were "URLs"
     name: 'Consultant Starter Pack',
     resources: [
-      { url: 'https://salesforce.com',  notes: 'CRM â€” replace with your CRM' },
-      { url: 'https://notion.so',       notes: 'Project tracker â€” replace with your tracker' },
+      { url: 'https://salesforce.com',  notes: 'CRM — replace with your CRM' },
+      { url: 'https://notion.so',       notes: 'Project tracker — replace with your tracker' },
       { url: 'https://mail.google.com', notes: 'Client email' },
-      { url: 'https://freshbooks.com',  notes: 'Invoicing â€” replace with your invoicing tool' },
+      { url: 'https://freshbooks.com',  notes: 'Invoicing — replace with your invoicing tool' },
     ],
   },
   it: {
     name: 'IT Tech Daily Briefing',
     resources: [
-      { url: 'https://jira.atlassian.com',       notes: 'Ticket system â€” replace with your system' },
-      { url: 'https://grafana.com',              notes: 'Monitoring dashboard â€” replace with your dashboard' },
-      { url: 'https://confluence.atlassian.com', notes: 'Documentation wiki â€” replace with your wiki' },
+      { url: 'https://jira.atlassian.com',       notes: 'Ticket system — replace with your system' },
+      { url: 'https://grafana.com',              notes: 'Monitoring dashboard — replace with your dashboard' },
+      { url: 'https://confluence.atlassian.com', notes: 'Documentation wiki — replace with your wiki' },
     ],
   },
   pm: {
     name: 'Project Manager Toolkit',
     resources: [
-      { url: 'https://jira.atlassian.com',           notes: 'Project board â€” replace with your board' },
-      { url: 'https://docs.google.com/spreadsheets', notes: 'Spreadsheet tracker â€” replace with your tracker' },
-      { url: 'https://slack.com',                    notes: 'Team communication â€” replace with your tool' },
+      { url: 'https://jira.atlassian.com',           notes: 'Project board — replace with your board' },
+      { url: 'https://docs.google.com/spreadsheets', notes: 'Spreadsheet tracker — replace with your tracker' },
+      { url: 'https://slack.com',                    notes: 'Team communication — replace with your tool' },
       { url: 'https://calendar.google.com',          notes: 'Meeting notes & calendar' },
     ],
   },
   agency: {
     name: 'Agency Client Workspace',
     resources: [
-      { url: 'https://monday.com',          notes: 'Project management â€” replace with your tool' },
-      { url: 'https://figma.com',           notes: 'Design tool â€” replace with your design tool' },
-      { url: 'https://notion.so',           notes: 'Client portal â€” replace with your portal link' },
-      { url: 'https://analytics.google.com', notes: 'Reporting dashboard â€” replace with your dashboard' },
+      { url: 'https://monday.com',          notes: 'Project management — replace with your tool' },
+      { url: 'https://figma.com',           notes: 'Design tool — replace with your design tool' },
+      { url: 'https://notion.so',           notes: 'Client portal — replace with your portal link' },
+      { url: 'https://analytics.google.com', notes: 'Reporting dashboard — replace with your dashboard' },
     ],
   },
 };
@@ -289,13 +289,13 @@ async function createFromTemplate(templateKey) {
   }
 }
 
-// â”€â”€ Forgot / reset password â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Forgot / reset password ───────────────────────────────────────────────────
 
 async function submitForgot() {
   const email = document.getElementById('forgot-email').value.trim();
   if (!email) return;
   const btn = document.getElementById('forgot-submit');
-  btn.disabled = true; btn.textContent = 'Please waitâ€¦';
+  btn.disabled = true; btn.textContent = 'Please wait…';
   try {
     await apiFetch('/users/forgot-password', {
       method: 'POST', body: JSON.stringify({ email }),
@@ -313,18 +313,18 @@ async function submitReset() {
   const token    = document.getElementById('reset-token').value.trim();
   const password = document.getElementById('reset-password').value;
   const confirm  = document.getElementById('reset-password-confirm').value;
-  if (!token)    { setAuthError('Reset link is missing its token â€” please use the link from your email.'); return; }
+  if (!token)    { setAuthError('Reset link is missing its token — please use the link from your email.'); return; }
   if (!password) { setAuthError('Please enter a new password.'); return; }
   if (password !== confirm) { setAuthError('Passwords do not match.'); return; }
   const btn = document.getElementById('reset-submit');
-  btn.disabled = true; btn.textContent = 'Please waitâ€¦';
+  btn.disabled = true; btn.textContent = 'Please wait…';
   try {
     await apiFetch('/users/reset-password', {
       method: 'POST', body: JSON.stringify({ token, new_password: password }),
     });
     setAuthMode('login');
     setAuthError('');
-    document.getElementById('auth-error').textContent = 'Password updated â€” please log in.';
+    document.getElementById('auth-error').textContent = 'Password updated — please log in.';
     document.getElementById('auth-error').classList.remove('hidden');
     document.getElementById('auth-error').style.background = 'rgba(5,150,105,0.08)';
     document.getElementById('auth-error').style.borderColor = '#6ee7b7';
@@ -336,7 +336,7 @@ async function submitReset() {
   }
 }
 
-// â”€â”€ App state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── App state ─────────────────────────────────────────────────────────────────
 
 let currentUser       = null; // BILLING: populated from /users/me on boot
 let currentLists      = [];
@@ -359,7 +359,7 @@ const activeWorkspaceIds    = new Set(
 function _saveOpenedLists()      { localStorage.setItem('pcm_opened_lists',      JSON.stringify([...openedLists])); }
 function _saveActiveWorkspaces() { localStorage.setItem('pcm_active_workspaces', JSON.stringify([...activeWorkspaceIds])); }
 
-// â”€â”€ List operations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── List operations ───────────────────────────────────────────────────────────
 
 async function createList(name) {
   // TERMINOLOGY: "Untitled Workspace" was "Untitled List"
@@ -419,7 +419,7 @@ async function renameList(id, newName) {
   }
 }
 
-// â”€â”€ URL operations â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── URL operations ────────────────────────────────────────────────────────────
 
 function normaliseUrl(raw) {
   raw = raw.trim();
@@ -438,7 +438,7 @@ async function addUrl(listId, inputEl) {
     inputEl.focus();
     return;
   }
-  // normaliseUrl already prepends https:// if no scheme â€” no further format check needed
+  // normaliseUrl already prepends https:// if no scheme — no further format check needed
   errEl.classList.add('hidden');
 
   try {
@@ -459,7 +459,7 @@ async function removeUrl(listId, urlId) {
   }
 }
 
-// â”€â”€ Star / Unstar â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Star / Unstar ─────────────────────────────────────────────────────────────
 
 async function toggleStar() {
   const list = currentLists.find(l => l.id == selectedListId) || sharedListDetails.find(l => l.id == selectedListId);
@@ -475,7 +475,7 @@ async function toggleStar() {
   }
 }
 
-// â”€â”€ Workspace sharing (email invite) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Workspace sharing (email invite) ─────────────────────────────────────────
 
 async function loadSharedWorkspaces() {
   try {
@@ -526,7 +526,7 @@ async function submitInvite() {
   const permission = document.getElementById('invite-permission').value;
   if (!email || !selectedListId) return;
   const btn = document.getElementById('invite-submit-btn');
-  btn.disabled = true; btn.textContent = 'Invitingâ€¦';
+  btn.disabled = true; btn.textContent = 'Inviting…';
   try {
     const share = await apiFetch(`/lists/${selectedListId}/share`, {
       method: 'POST', body: JSON.stringify({ email, permission }),
@@ -551,7 +551,7 @@ function closeInvitePanel() {
   document.getElementById('invite-shares-list').innerHTML = '';
 }
 
-// â”€â”€ Skeleton / loading helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Skeleton / loading helpers ────────────────────────────────────────────────
 
 function showSidebarSkeleton() {
   const widths = ['72%', '58%', '80%', '63%'];
@@ -574,7 +574,7 @@ function _showDetailSkeleton() {
   ).join('');
 }
 
-// â”€â”€ Billing / trial banner â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Billing / trial banner ────────────────────────────────────────────────────
 
 function _isPro(user) {
   if (!user) return false;
@@ -615,19 +615,19 @@ function showTrialBanner() {
 
   // Trial expired, free tier
   textEl.innerHTML =
-    `<strong>Trial ended.</strong> You're on the free tier â€” up to 3 workspaces. ` +
+    `<strong>Trial ended.</strong> You're on the free tier — up to 3 workspaces. ` +
     `Upgrade to Pro for unlimited access.`;
   upgradeEl.classList.remove('hidden');
 }
 
 async function _doCheckout(btn) {
   const origText = btn ? btn.textContent : 'Upgrade to Pro';
-  if (btn) { btn.disabled = true; btn.textContent = 'Redirectingâ€¦'; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Redirecting…'; }
   try {
     const { url } = await apiFetch('/billing/create-checkout-session', { method: 'POST' });
     window.location.href = url;
   } catch (e) {
-    showErrorToast(e.message || 'Could not start checkout â€” please try again.');
+    showErrorToast(e.message || 'Could not start checkout — please try again.');
     if (btn) { btn.disabled = false; btn.textContent = origText; }
   }
 }
@@ -644,7 +644,7 @@ function closeUpgradeModal() {
   document.getElementById('upgrade-modal').classList.add('hidden');
 }
 
-// â”€â”€ Shared Out view â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Shared Out view ──────────────────────────────────────────────────────────
 
 function showSharedOut() {
   currentView    = 'shared-out';
@@ -699,7 +699,7 @@ function renderSharedOut() {
   });
 }
 
-// â”€â”€ Account Settings â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Account Settings ─────────────────────────────────────────────────────────
 
 const _WORK_TYPE_LABELS = {
   independent_consultant: 'Independent consultant',
@@ -734,7 +734,7 @@ async function loadAccountSettings() {
       subEl.innerHTML = `
         <div class="settings-row">
           <span class="settings-label">Plan</span>
-          <span class="settings-value settings-pro-badge">âœ“ ${esc(label)}</span>
+          <span class="settings-value settings-pro-badge">✓ ${esc(label)}</span>
         </div>`;
     } else {
       const inTrial = user.trial_ends_at && new Date(user.trial_ends_at) > new Date();
@@ -742,7 +742,7 @@ async function loadAccountSettings() {
       subEl.innerHTML = `
         <div class="settings-row">
           <span class="settings-label">Plan</span>
-          <span class="settings-value">${esc(planLabel)} Â· up to 3 workspaces</span>
+          <span class="settings-value">${esc(planLabel)} · up to 3 workspaces</span>
         </div>
         <p class="settings-upgrade-desc">Upgrade to Tabrador Pro for unlimited workspaces and email sharing with teammates.</p>
         <button class="btn-primary" id="settings-upgrade-btn">Upgrade to Pro</button>`;
@@ -762,7 +762,7 @@ async function savePassword() {
   if (next !== confirm)   { _setSettingsMsg('New passwords do not match.', 'error'); return; }
   if (next.length < 8)    { _setSettingsMsg('New password must be at least 8 characters.', 'error'); return; }
 
-  btn.disabled = true; btn.textContent = 'Savingâ€¦';
+  btn.disabled = true; btn.textContent = 'Saving…';
   try {
     await apiFetch('/users/me/password', {
       method: 'PATCH', body: JSON.stringify({ current_password: current, new_password: next }),
@@ -788,7 +788,7 @@ async function deleteAccount() {
   const input = document.getElementById('settings-delete-input').value.trim();
   if (input !== 'DELETE') { showErrorToast('Type DELETE in capitals to confirm.'); return; }
   const btn = document.getElementById('settings-delete-confirm-btn');
-  btn.disabled = true; btn.textContent = 'Deletingâ€¦';
+  btn.disabled = true; btn.textContent = 'Deleting…';
   try {
     await apiFetch('/users/me', { method: 'DELETE' });
     clearToken();
@@ -802,7 +802,7 @@ async function deleteAccount() {
   }
 }
 
-// â”€â”€ Dashboard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Dashboard ─────────────────────────────────────────────────────────────────
 
 function formatTimeSaved(totalSeconds) {
   if (!totalSeconds) return '0 minutes';
@@ -881,7 +881,7 @@ async function loadDashboard() {
         if (ws.is_shared && ws.shared_by_email) metaParts.push(`from ${ws.shared_by_email.split('@')[0]}`);
         const metaEl = document.createElement('div');
         metaEl.className = 'dash-recent-meta';
-        metaEl.textContent = metaParts.join(' Â· ');
+        metaEl.textContent = metaParts.join(' · ');
         card.appendChild(metaEl);
 
         card.addEventListener('click', () => selectList(ws.id));
@@ -905,11 +905,11 @@ function showDashboard() {
   loadDashboard();
 }
 
-// â”€â”€ Start Working / Wrap Up (was Open All / Close All) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Start Working / Wrap Up (was Open All / Close All) ───────────────────────
 // TIME_TRACKING: when time tracking is added here, use these conventions:
-//   "Time logged"    â†’ "Billable hours"
-//   "Work session"   â†’ "Client session"
-//   "Export"         â†’ "Invoice ready export"
+//   "Time logged"    → "Billable hours"
+//   "Work session"   → "Client session"
+//   "Export"         → "Invoice ready export"
 
 async function openAll() {
   const list = currentLists.find(l => l.id == selectedListId) || sharedListDetails.find(l => l.id == selectedListId);
@@ -942,7 +942,7 @@ async function openAll() {
     });
 
     const opened = Math.min(i + 10, total);
-    if (total > 10 && opened < total) closeBtn.textContent = `Openingâ€¦ ${opened} of ${total}`;
+    if (total > 10 && opened < total) closeBtn.textContent = `Opening… ${opened} of ${total}`;
 
     if (i + 10 < total) await new Promise(r => setTimeout(r, 1500));
   }
@@ -952,16 +952,16 @@ async function openAll() {
   // Return focus to the first tab so the user lands there, not the last one opened.
   if (trackedWindows[selectedListId]?.[0]) trackedWindows[selectedListId][0].focus();
 
-  // Detect popup blocking â€” if the browser silently refused tabs, warn the user
+  // Detect popup blocking — if the browser silently refused tabs, warn the user
   const opened = (trackedWindows[selectedListId] || []).length;
   if (opened === 0 && total > 0) {
     showErrorToast(
-      'No tabs opened â€” your browser may be blocking popups. ' +
+      'No tabs opened — your browser may be blocking popups. ' +
       'Allow popups for tabrador.app in your browser settings and try again.'
     );
   } else if (opened < total) {
     showErrorToast(
-      `${total - opened} tab${total - opened !== 1 ? 's' : ''} couldn\'t be opened â€” ` +
+      `${total - opened} tab${total - opened !== 1 ? 's' : ''} couldn\'t be opened — ` +
       'your browser may be blocking some popups. Check your browser settings.'
     );
   }
@@ -974,13 +974,13 @@ async function toggleUrlStar(listId, urlId, currentStarred) {
       method: 'PATCH',
       body: JSON.stringify({ starred: newStarred }),
     });
-    // Optimistic local update â€” no full re-render needed.
+    // Optimistic local update — no full re-render needed.
     const list = currentLists.find(l => l.id == listId);
     if (list) { const u = list.urls.find(u => u.id == urlId); if (u) u.starred = newStarred; }
     const btn = document.querySelector(`.url-star[data-list="${listId}"][data-url="${urlId}"]`);
     if (btn) {
       btn.classList.toggle('starred', newStarred);
-      btn.textContent     = newStarred ? 'â˜…' : 'â˜†';
+      btn.textContent     = newStarred ? '★' : '☆';
       btn.title           = newStarred ? 'Unstar' : 'Star';
       btn.dataset.starred = String(newStarred);
     }
@@ -1027,7 +1027,7 @@ function updateActiveIndicators() {
   }
 }
 
-// â”€â”€ Sharing â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Sharing ───────────────────────────────────────────────────────────────────
 
 function encodeList(list) {
   const payload = JSON.stringify({ name: list.name, urls: list.urls.map(u => u.url) });
@@ -1053,9 +1053,9 @@ function checkShareLink() {
     const { name, urls } = pendingImport;
     document.getElementById('import-banner-title').textContent = `Shared list: "${name}"`;
     document.getElementById('import-banner-desc').textContent =
-      `${urls.length} URL${urls.length !== 1 ? 's' : ''} â€” click "Add to My Lists" to save it.`;
+      `${urls.length} URL${urls.length !== 1 ? 's' : ''} — click "Add to My Lists" to save it.`;
     document.getElementById('import-banner').classList.remove('hidden');
-  } catch { /* malformed token â€” ignore */ }
+  } catch { /* malformed token — ignore */ }
 }
 
 async function importSharedList() {
@@ -1080,7 +1080,7 @@ function dismissImportBanner() {
   history.replaceState(null, '', location.pathname + location.search);
 }
 
-// â”€â”€ Snapshot modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Snapshot modal ────────────────────────────────────────────────────────────
 
 function openSnapshotModal() {
   document.getElementById('snapshot-modal').classList.remove('hidden');
@@ -1090,7 +1090,7 @@ function closeSnapshotModal() {
   document.getElementById('snapshot-modal').classList.add('hidden');
 }
 
-// â”€â”€ Transfer modal (move / copy resource to another workspace) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Transfer modal (move / copy resource to another workspace) ─────────────────
 
 let _transferMode   = null;  // 'move' | 'copy'
 let _transferListId = null;
@@ -1119,7 +1119,7 @@ function openTransferModal(mode, listId, urlId) {
     });
 
   if (select.options.length === 0) {
-    showErrorToast('No other workspaces to transfer to â€” create one first.');
+    showErrorToast('No other workspaces to transfer to — create one first.');
     return;
   }
 
@@ -1138,7 +1138,7 @@ async function confirmTransfer() {
 
   const btn = document.getElementById('transfer-confirm-btn');
   btn.disabled = true;
-  btn.textContent = _transferMode === 'move' ? 'Movingâ€¦' : 'Copyingâ€¦';
+  btn.textContent = _transferMode === 'move' ? 'Moving…' : 'Copying…';
 
   try {
     await apiFetch(`/lists/${_transferListId}/urls/${_transferUrlId}/${_transferMode}`, {
@@ -1176,7 +1176,7 @@ async function importSnapshot() {
   }
 }
 
-// â”€â”€ Error toast â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Error toast ───────────────────────────────────────────────────────────────
 
 function showErrorToast(msg) {
   const toast = document.createElement('div');
@@ -1186,10 +1186,10 @@ function showErrorToast(msg) {
   setTimeout(() => toast.remove(), 4000);
 }
 
-// â”€â”€ Display helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Display helpers ───────────────────────────────────────────────────────────
 
 function formatDate(iso) {
-  if (!iso) return 'â€”';
+  if (!iso) return '—';
   const d    = new Date(iso);
   const now  = new Date();
   const tod  = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -1208,9 +1208,9 @@ function displayUrl(raw) {
   try {
     const u    = new URL(raw);
     const full = u.hostname + u.pathname + u.search + u.hash;
-    return full.length > 80 ? full.slice(0, 80) + 'â€¦' : full;
+    return full.length > 80 ? full.slice(0, 80) + '…' : full;
   } catch {
-    return raw.length > 80 ? raw.slice(0, 80) + 'â€¦' : raw;
+    return raw.length > 80 ? raw.slice(0, 80) + '…' : raw;
   }
 }
 
@@ -1235,7 +1235,7 @@ function safeOpen(url, ...args) {
 }
 
 
-// â”€â”€ Rendering â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Rendering ─────────────────────────────────────────────────────────────────
 
 function buildNavItem(list) {
   const item = document.createElement('div');
@@ -1246,7 +1246,7 @@ function buildNavItem(list) {
   item.dataset.id = list.id;
   item.innerHTML  = `
     <span class="nav-item-name">${esc(list.name)}</span>
-    ${list.starred ? '<span class="nav-item-star">â˜…</span>' : ''}
+    ${list.starred ? '<span class="nav-item-star">★</span>' : ''}
     <span class="nav-item-count">${list.urls.length}</span>
   `;
   item.addEventListener('click', () => selectList(list.id));
@@ -1272,7 +1272,7 @@ function renderSidebar() {
     currentLists.forEach(list => myListsContainer.appendChild(buildNavItem(list)));
   }
 
-  // SHARING: Team Workspaces section â€” workspaces shared with current user
+  // SHARING: Team Workspaces section — workspaces shared with current user
   if (sharedWorkspaces.length === 0) {
     const p = document.createElement('p');
     p.className   = 'nav-coming-soon';
@@ -1311,7 +1311,7 @@ function renderSidebar() {
   }
 }
 
-// All top-level content panels â€” renderDetail always clears then shows only the right one
+// All top-level content panels — renderDetail always clears then shows only the right one
 const _ALL_VIEWS = [
   'dashboard', 'shared-out-view', 'my-workspaces-view',
   'shared-with-me-view', 'account-settings-view', 'welcome-state', 'list-detail',
@@ -1324,7 +1324,7 @@ function renderMyWorkspaces() {
   const grid = document.getElementById('my-workspaces-grid');
   grid.innerHTML = '';
   if (currentLists.length === 0) {
-    grid.innerHTML = '<p class="dash-empty-hint">No workspaces yet â€” click + next to My Workspaces in the sidebar to create one.</p>';
+    grid.innerHTML = '<p class="dash-empty-hint">No workspaces yet — click + next to My Workspaces in the sidebar to create one.</p>';
     return;
   }
   currentLists.forEach(list => {
@@ -1332,7 +1332,7 @@ function renderMyWorkspaces() {
     card.className = 'workspace-grid-card';
     card.innerHTML = `
       <div class="workspace-grid-card-name">${esc(list.name)}</div>
-      <div class="workspace-grid-card-meta">${list.urls.length} resource${list.urls.length !== 1 ? 's' : ''}${list.starred ? ' Â· â˜…' : ''}</div>`;
+      <div class="workspace-grid-card-meta">${list.urls.length} resource${list.urls.length !== 1 ? 's' : ''}${list.starred ? ' · ★' : ''}</div>`;
     card.addEventListener('click', () => selectList(list.id));
     grid.appendChild(card);
   });
@@ -1357,7 +1357,7 @@ function renderSharedWithMe() {
     card.className = 'workspace-grid-card';
     card.innerHTML = `
       <div class="workspace-grid-card-name">${esc(ws.name)}</div>
-      <div class="workspace-grid-card-meta">${ws.url_count} resource${ws.url_count !== 1 ? 's' : ''} Â· from ${esc(ws.shared_by_email.split('@')[0])}</div>`;
+      <div class="workspace-grid-card-meta">${ws.url_count} resource${ws.url_count !== 1 ? 's' : ''} · from ${esc(ws.shared_by_email.split('@')[0])}</div>`;
     card.addEventListener('click', () => selectList(ws.id));
     grid.appendChild(card);
   });
@@ -1428,7 +1428,7 @@ function renderDetail() {
     `${list.urls.length} resource${list.urls.length !== 1 ? 's' : ''}`;
 
   const starBtn = document.getElementById('star-btn');
-  starBtn.textContent = list.starred ? 'â˜… Starred' : 'â˜† Star';
+  starBtn.textContent = list.starred ? '★ Starred' : '☆ Star';
   starBtn.classList.toggle('starred', list.starred);
 
   updateOpenCloseButtons();
@@ -1466,9 +1466,9 @@ function renderDetail() {
       const linkText  = u.title ? esc(u.title) : esc(displayUrl(u.url));
       const addedBy   = u.added_by_email
         ? esc(u.added_by_email.split('@')[0])
-        : 'â€”';
+        : '—';
       const addedByFull = u.added_by_email ? esc(u.added_by_email) : '';
-      const lastOpened  = u.last_opened ? formatDate(u.last_opened) : 'â€”';
+      const lastOpened  = u.last_opened ? formatDate(u.last_opened) : '—';
       const starred     = u.starred || false;
 
       li.innerHTML = `
@@ -1483,7 +1483,7 @@ function renderDetail() {
           <div class="url-col-actions">
             <button class="url-action-btn url-open"
                     data-href="${esc(u.url)}" data-list="${list.id}" data-url="${u.id}"
-                    title="Open in new tab">â†—</button>
+                    title="Open in new tab">↗</button>
             <button class="url-action-btn url-move"
                     data-list="${list.id}" data-url="${u.id}"
                     title="Move to another workspace">
@@ -1502,15 +1502,15 @@ function renderDetail() {
             </button>
             <button class="url-action-btn url-star ${starred ? 'starred' : ''}"
                     data-list="${list.id}" data-url="${u.id}" data-starred="${starred}"
-                    title="${starred ? 'Unstar' : 'Star'}">${starred ? 'â˜…' : 'â˜†'}</button>
+                    title="${starred ? 'Unstar' : 'Star'}">${starred ? '★' : '☆'}</button>
             <button class="url-action-btn url-remove remove-url"
                     data-list="${list.id}" data-url="${u.id}"
-                    title="Remove">Ã—</button>
+                    title="Remove">×</button>
           </div>
         </div>
         <div class="url-notes-row">
           <input type="text" class="url-notes-input"
-                 placeholder="Resource notesâ€¦"
+                 placeholder="Resource notes…"
                  value="${esc(u.notes || '')}"
                  data-list="${list.id}" data-url="${u.id}" />
         </div>
@@ -1557,7 +1557,7 @@ async function render() {
   } catch (e) {
     _firstRender = false;
     if (currentView === 'workspace' && selectedListId) {
-      showErrorToast(e.message || 'Couldn\'t load your workspaces â€” please refresh.');
+      showErrorToast(e.message || 'Couldn\'t load your workspaces — please refresh.');
     }
     return;
   }
@@ -1574,7 +1574,7 @@ async function render() {
   renderDetail();
 }
 
-// â”€â”€ Event wiring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Event wiring ──────────────────────────────────────────────────────────────
 
 document.getElementById('tab-login').addEventListener('click',    () => setAuthMode('login'));
 document.getElementById('tab-register').addEventListener('click', () => setAuthMode('register'));
@@ -1625,7 +1625,7 @@ document.getElementById('create-list-btn').addEventListener('click', async () =>
   if (!input.value.trim()) return;
   const name = input.value.trim();
   const btn  = document.getElementById('create-list-btn');
-  btn.disabled = true; btn.textContent = 'â€¦';
+  btn.disabled = true; btn.textContent = '…';
   input.value = '';
   document.getElementById('new-list-form').classList.add('hidden');
   await createList(name);
@@ -1679,7 +1679,7 @@ document.getElementById('archive-list-btn').addEventListener('click', async () =
   btn.disabled = false;
 });
 
-// Delete â€” open confirmation modal
+// Delete — open confirmation modal
 document.getElementById('delete-list-btn').addEventListener('click', () => {
   if (!selectedListId) return;
   const list = currentLists.find(l => l.id == selectedListId)
@@ -1702,7 +1702,7 @@ document.getElementById('delete-confirm-modal').addEventListener('click', e => {
 document.getElementById('delete-confirm-ok').addEventListener('click', async () => {
   if (!selectedListId) return;
   const btn = document.getElementById('delete-confirm-ok');
-  btn.disabled = true; btn.textContent = 'Deletingâ€¦';
+  btn.disabled = true; btn.textContent = 'Deleting…';
   try {
     await deleteList(selectedListId);
     closeDeleteConfirmModal();
@@ -1727,7 +1727,7 @@ document.getElementById('detail-edit-btn').addEventListener('click', () => {
 document.getElementById('detail-add-btn').addEventListener('click', async () => {
   if (!selectedListId) return;
   const btn = document.getElementById('detail-add-btn');
-  btn.disabled = true; btn.textContent = 'â€¦';
+  btn.disabled = true; btn.textContent = '…';
   await addUrl(selectedListId, document.getElementById('detail-add-url'));
   btn.disabled = false; btn.textContent = 'Add Resource';
 });
@@ -1852,7 +1852,7 @@ document.getElementById('shared-out-list').addEventListener('click', async e => 
   if (revokeBtn) {
     const shareId = parseInt(revokeBtn.dataset.shareId);
     const wsId    = parseInt(revokeBtn.dataset.wsId);
-    revokeBtn.disabled = true; revokeBtn.textContent = 'â€¦';
+    revokeBtn.disabled = true; revokeBtn.textContent = '…';
     try {
       await apiFetch(`/lists/${wsId}/shares/${shareId}`, { method: 'DELETE' });
       const ws = sharedOutData.find(w => w.id == wsId);
@@ -1894,7 +1894,7 @@ document.getElementById('template-modal').addEventListener('click', e => {
   if (e.target === e.currentTarget) closeTemplateModal();
 });
 
-// â”€â”€ Boot â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ── Boot ──────────────────────────────────────────────────────────────────────
 
 async function boot() {
   const bootEl = document.getElementById('boot-loader');
@@ -1924,19 +1924,19 @@ async function boot() {
     showSidebarSkeleton();          // show skeleton items in sidebar
     showTrialBanner();              // show trial/upgrade banner if applicable
     bootEl.classList.add('hidden'); // user now sees app with skeleton
-    await render();                 // lists load â†’ skeleton replaced with real items
+    await render();                 // lists load → skeleton replaced with real items
     await loadSharedWorkspaces();
     showDashboard();                // triggers loadDashboard() which shows its own skeleton
     checkShareLink();
   } catch {
-    // apiFetch clears the token on 401 â€” if it's gone now, the session expired.
+    // apiFetch clears the token on 401 — if it's gone now, the session expired.
     // Any other failure (network, server) shows a different message.
     const wasAuthFailure = !getToken();
     showAuthScreen();
     setAuthError(
       wasAuthFailure
-        ? 'Your session expired â€” please log in again.'
-        : 'Connection error â€” please check your internet and try again.'
+        ? 'Your session expired — please log in again.'
+        : 'Connection error — please check your internet and try again.'
     );
     bootEl.classList.add('hidden');
   }
