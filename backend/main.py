@@ -54,12 +54,14 @@ app.add_exception_handler(RateLimitExceeded, _rate_limit_handler)
 # Restricts what the browser will load or execute on any page served by this app.
 # style-src includes 'unsafe-inline' because the SPA uses an inline <style> block.
 # font-src allows fonts.gstatic.com because Plus Jakarta Sans is loaded via Google Fonts.
+# script-src allows static.cloudflareinsights.com for Cloudflare's injected beacon.
+# connect-src allows cloudflareinsights.com for the beacon's analytics POST.
 _CSP = (
     "default-src 'self'; "
-    "script-src 'self'; "
+    "script-src 'self' https://static.cloudflareinsights.com; "
     "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
     "font-src 'self' https://fonts.gstatic.com; "
-    "connect-src 'self'; "
+    "connect-src 'self' https://cloudflareinsights.com; "
     "img-src 'self' data:; "
     "object-src 'none'; "
     "base-uri 'self';"
@@ -100,6 +102,12 @@ def serve_frontend():
 def root():
     html = os.path.join(os.path.dirname(__file__), '..', 'index.html')
     return FileResponse(os.path.abspath(html))
+
+
+@app.get("/app.js", tags=["frontend"])
+def serve_app_js():
+    js = os.path.join(os.path.dirname(__file__), '..', 'app.js')
+    return FileResponse(os.path.abspath(js), media_type="application/javascript")
 
 
 @app.get("/reset-password", tags=["frontend"])
