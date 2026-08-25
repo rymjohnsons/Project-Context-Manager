@@ -297,5 +297,14 @@ button {
   animation: spin-ext 0.75s linear infinite; flex-shrink: 0;
 }
 
+/* ── Delete confirmation (two-stage click) ──────────────────────────────── */
+/* Applied to remove-url-btn and btn-delete while awaiting second click.    */
+.delete-confirm-pending,
+.delete-confirm-pending:hover {
+  color: #dc2626 !important;
+  background: rgba(220, 38, 38, 0.12) !important;
+  border-radius: 3px;
+}
+
 /* ── Utility ────────────────────────────────────────────────────────────── */
 .hidden { display: none !important; }

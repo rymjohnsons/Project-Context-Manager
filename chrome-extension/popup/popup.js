@@ -369,6 +369,42 @@ function syncDropdown() {
   if (prev) sel.value = prev;
 }
 
+// ── Two-stage delete confirmation ─────────────────────────────────────────────
+// First click  → button turns red / shows ✓ / stores original state in dataset.
+// Second click → confirms; auto-reverts after 2.5 s with no second click.
+// State is stored on the element itself so it survives event delegation without
+// a separate Map and cleans itself up naturally when the element is removed.
+
+function _armDeleteConfirm(btn, onConfirm) {
+  if (btn.dataset.deleteConfirm === 'pending') {
+    clearTimeout(parseInt(btn.dataset.deleteTimer, 10));
+    delete btn.dataset.deleteConfirm;
+    delete btn.dataset.deleteTimer;
+    btn.textContent = btn.dataset.deleteOrigText;
+    btn.title       = btn.dataset.deleteOrigTitle;
+    btn.classList.remove('delete-confirm-pending');
+    onConfirm();
+    return;
+  }
+  btn.dataset.deleteOrigText  = btn.textContent;
+  btn.dataset.deleteOrigTitle = btn.title;
+  btn.dataset.deleteConfirm   = 'pending';
+  btn.textContent = '✓';
+  btn.title       = 'Click again to confirm delete';
+  btn.classList.add('delete-confirm-pending');
+
+  const timer = setTimeout(() => {
+    if (btn.dataset.deleteConfirm === 'pending') {
+      delete btn.dataset.deleteConfirm;
+      delete btn.dataset.deleteTimer;
+      btn.textContent = btn.dataset.deleteOrigText;
+      btn.title       = btn.dataset.deleteOrigTitle;
+      btn.classList.remove('delete-confirm-pending');
+    }
+  }, 2500);
+  btn.dataset.deleteTimer = timer;
+}
+
 // ── Toast ──────────────────────────────────────────────────────────────────────
 
 let toastTimer = null;
@@ -503,10 +539,14 @@ document.getElementById('lists-container').addEventListener('click', async e => 
   if (btn.classList.contains('open-all-btn'))      await openAll(btn.dataset.list);
   else if (btn.classList.contains('close-all-btn')) await closeAll(btn.dataset.list);
   else if (btn.classList.contains('delete-list-btn')) {
-    await deleteList(btn.dataset.list);
-    showToast('List deleted.', 'success');
+    _armDeleteConfirm(btn, async () => {
+      await deleteList(btn.dataset.list);
+      showToast('Workspace deleted.', 'success');
+    });
   } else if (btn.classList.contains('remove-url-btn')) {
-    await removeUrl(btn.dataset.list, btn.dataset.url);
+    _armDeleteConfirm(btn, async () => {
+      await removeUrl(btn.dataset.list, btn.dataset.url);
+    });
   } else if (btn.classList.contains('dismiss-large-warning-btn')) {
     dismissedLargeWarning.add(parseInt(btn.dataset.list));
     btn.closest('.large-workspace-warning').remove();
