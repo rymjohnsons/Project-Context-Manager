@@ -21,6 +21,9 @@ class User(Base):
     # DASHBOARD: cumulative count of tabs opened via Start Working
     tabs_opened     = Column(Integer, default=0, nullable=False)
 
+    # AUTH: incremented on password change to invalidate outstanding JWTs
+    token_version = Column(Integer, default=0, nullable=False)
+
     # BILLING: subscription state
     plan                   = Column(String, default="free", nullable=False)
     trial_ends_at          = Column(DateTime(timezone=True), nullable=True)

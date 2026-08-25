@@ -19,6 +19,14 @@ logging.basicConfig(level=logging.INFO)
 _log = logging.getLogger(__name__)
 _log.info("Database: %s", "PostgreSQL" if not DATABASE_URL.startswith("sqlite") else "SQLite (local dev)")
 
+# ── Startup config guards ──────────────────────────────────────────────────────
+# SECRET_KEY is validated in auth.py (raises RuntimeError at import time if missing).
+# STRIPE_WEBHOOK_SECRET is checked here because billing.py reads it lazily.
+if not os.environ.get("STRIPE_WEBHOOK_SECRET"):
+    raise RuntimeError(
+        "STRIPE_WEBHOOK_SECRET environment variable is not set — refusing to start."
+    )
+
 # Migrations are handled by 'alembic upgrade head' in the Procfile before uvicorn starts.
 # create_all is a safety net for local dev (no-op when Alembic has already created tables).
 models.Base.metadata.create_all(bind=engine)

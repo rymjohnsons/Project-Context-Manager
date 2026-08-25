@@ -160,7 +160,7 @@ def login(request: Request, user_in: schemas.UserCreate, db: Session = Depends(g
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect email or password."
         )
-    token = auth.create_access_token(user.id)
+    token = auth.create_access_token(user.id, user.token_version or 0)
     return {"access_token": token, "token_type": "bearer"}
 
 
@@ -319,6 +319,7 @@ def change_password(
     if not auth.verify_password(data.current_password, current_user.hashed_password):
         raise HTTPException(status_code=400, detail="Current password is incorrect.")
     current_user.hashed_password = auth.hash_password(data.new_password)
+    current_user.token_version   = (current_user.token_version or 0) + 1
     db.commit()
     return {"message": "Password updated successfully."}
 

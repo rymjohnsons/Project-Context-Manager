@@ -30,11 +30,15 @@ from database import get_db
 # ── Secret key ─────────────────────────────────────────────────────────────────
 # This key signs every JWT. Anyone with this key can forge tokens, so in
 # production it must be a long random string stored in an environment variable.
-# For local development a hardcoded value is fine.
 # Read from the environment so the real secret is never committed to git.
 # Locally: set in backend/.env
 # Railway: set as an environment variable in the Railway dashboard
-SECRET_KEY = os.environ.get("SECRET_KEY", "local-dev-only-change-before-deploying")
+SECRET_KEY = os.environ.get("SECRET_KEY", "")
+if len(SECRET_KEY) < 32:
+    raise RuntimeError(
+        "SECRET_KEY environment variable is missing or too short "
+        "(must be 32+ characters) — refusing to start."
+    )
 ALGORITHM  = "HS256"
 
 # Tokens expire after 7 days. The user will need to log in again after that.
@@ -56,16 +60,18 @@ def verify_password(plain: str, hashed: str) -> bool:
     return _bcrypt.checkpw(plain.encode(), hashed.encode())
 
 
-def create_access_token(user_id: int) -> str:
+def create_access_token(user_id: int, token_version: int = 0) -> str:
     """
-    Create a signed JWT encoding the user's ID.
+    Create a signed JWT encoding the user's ID and token version.
 
     The payload contains:
       sub  — the subject (who this token is for), stored as a string
       exp  — expiry timestamp (jose checks this automatically on decode)
+      tv   — token_version at time of issue; must match the DB value on
+             every request so password changes can invalidate old tokens
     """
     expire  = datetime.now(timezone.utc) + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    payload = {"sub": str(user_id), "exp": expire}
+    payload = {"sub": str(user_id), "exp": expire, "tv": token_version}
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 
@@ -91,11 +97,17 @@ def get_current_user(
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = int(payload["sub"])
+        # Tokens issued before the token_version feature lack "tv" — treat as 0
+        # so existing sessions survive the first deployment of this change.
+        token_version = int(payload.get("tv", 0))
     except (JWTError, KeyError, ValueError):
         raise credentials_exception
 
     user = db.query(models.User).filter(models.User.id == user_id).first()
     if user is None:
+        raise credentials_exception
+
+    if token_version != (user.token_version or 0):
         raise credentials_exception
 
     return user
