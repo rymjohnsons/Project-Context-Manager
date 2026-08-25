@@ -5,7 +5,7 @@ import logging
 import os
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, Response
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
@@ -106,8 +106,13 @@ def root():
 
 @app.get("/app.js", tags=["frontend"])
 def serve_app_js():
-    js = os.path.join(os.path.dirname(__file__), '..', 'app.js')
-    return FileResponse(os.path.abspath(js), media_type="application/javascript; charset=utf-8")
+    # text/javascript is the RFC 9239 type for JS; charset parameter is formally valid
+    # on text/* types so proxies/CDNs won't strip it (unlike application/javascript).
+    # Using Response directly so the exact Content-Type header survives unchanged.
+    js_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'app.js'))
+    with open(js_path, 'rb') as f:
+        content = f.read()
+    return Response(content=content, headers={"Content-Type": "text/javascript; charset=utf-8"})
 
 
 @app.get("/reset-password", tags=["frontend"])
