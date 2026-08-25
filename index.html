@@ -2517,7 +2517,7 @@ async function openAll() {
     const batch = urls.slice(i, i + 10);
 
     batch.forEach(u => {
-      const w = window.open(u.url, '_blank');
+      const w = safeOpen(u.url, '_blank');
       if (w) trackedWindows[selectedListId].push(w);
     });
 
@@ -2798,6 +2798,20 @@ function esc(str) {
   return String(str)
     .replace(/&/g, '&amp;').replace(/"/g, '&quot;')
     .replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function safeOpen(url, ...args) {
+  try {
+    const scheme = new URL(url).protocol;
+    if (scheme !== 'http:' && scheme !== 'https:') {
+      console.warn('Blocked unsafe URL scheme:', scheme);
+      return null;
+    }
+  } catch {
+    console.warn('Blocked malformed URL:', url);
+    return null;
+  }
+  return window.open(url, ...args);
 }
 
 
@@ -3307,7 +3321,7 @@ document.getElementById('detail-url-list').addEventListener('click', async e => 
 
   const openBtn = e.target.closest('.url-open');
   if (openBtn) {
-    window.open(openBtn.dataset.href, '_blank', 'noopener');
+    safeOpen(openBtn.dataset.href, '_blank', 'noopener');
     apiFetch(`/lists/${openBtn.dataset.list}/urls/${openBtn.dataset.url}/open`, { method: 'POST' })
       .then(() => render()).catch(() => {});
     return;

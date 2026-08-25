@@ -1,5 +1,6 @@
 import re
 import urllib.request
+from urllib.parse import urlparse
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
@@ -16,6 +17,19 @@ from billing import is_pro
 FREE_TIER_WORKSPACE_LIMIT = 3
 
 router = APIRouter(prefix="/lists", tags=["lists"])
+
+
+def _require_safe_url(url: str) -> None:
+    """Raise 422 if url is not http or https — blocks javascript:, data:, etc."""
+    try:
+        scheme = urlparse(url).scheme
+    except Exception:
+        scheme = ""
+    if scheme not in ("http", "https"):
+        raise HTTPException(
+            status_code=422,
+            detail="URL must use the http or https scheme.",
+        )
 
 
 def get_list_or_404(
@@ -410,6 +424,7 @@ def add_url(
     current_user:    models.User = Depends(auth.get_current_user),
 ):
     get_list_or_404(list_id, current_user, db, require_edit=True)
+    _require_safe_url(url_in.url)
     url = models.Url(url=url_in.url, list_id=list_id, added_by_id=current_user.id)
     db.add(url)
     db.commit()
