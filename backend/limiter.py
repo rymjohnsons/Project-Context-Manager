@@ -1,25 +1,45 @@
+import ipaddress
+import logging
 from fastapi import Request
 from slowapi import Limiter
+
+_log = logging.getLogger(__name__)
 
 
 def _get_real_ip(request: Request) -> str:
     """
-    Extract the real client IP from the X-Forwarded-For header.
+    Extract the real client IP for rate-limit keying.
 
-    Railway (and most PaaS / CDN proxies) set X-Forwarded-For to the true
-    client IP. Without this, slowapi reads request.client.host which is the
-    proxy's internal IP — making all traffic appear to come from one address
-    and effectively disabling per-user rate limiting.
-
-    X-Forwarded-For can be a comma-separated chain: "client, proxy1, proxy2".
-    The leftmost value is the original client; we take that one.
-
-    Falls back to the direct connection host when the header is absent
-    (e.g. local development with no proxy in front).
+    Priority order:
+      1. X-Real-IP — Railway's documented single-value header set exclusively
+         by Railway's infrastructure. Unlike X-Forwarded-For, clients cannot
+         prepend arbitrary values to it, so it is the safest primary source.
+      2. X-Forwarded-For (leftmost) — kept as fallback for environments where
+         X-Real-IP is absent (non-Railway deployments, local dev with a proxy).
+      3. request.client.host — final fallback for direct connections (local dev).
     """
+    # TEMPORARY DIAGNOSTIC — remove after confirming Railway header values in logs.
+    _log.info(
+        "RateLimit headers | X-Real-IP=%r | X-Forwarded-For=%r",
+        request.headers.get("X-Real-IP", "<absent>"),
+        request.headers.get("X-Forwarded-For", "<absent>"),
+    )
+
+    # ── Primary: X-Real-IP ───────────────────────────────────────────────────
+    x_real_ip = request.headers.get("X-Real-IP", "").strip()
+    if x_real_ip:
+        try:
+            ipaddress.ip_address(x_real_ip)
+            return x_real_ip
+        except ValueError:
+            _log.warning("X-Real-IP value %r is not a valid IP — falling back", x_real_ip)
+
+    # ── Secondary: X-Forwarded-For leftmost ──────────────────────────────────
     xff = request.headers.get("X-Forwarded-For", "").strip()
     if xff:
         return xff.split(",")[0].strip()
+
+    # ── Final: direct connection host ────────────────────────────────────────
     if request.client:
         return request.client.host
     return "unknown"
