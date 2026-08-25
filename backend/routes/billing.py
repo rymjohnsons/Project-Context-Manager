@@ -83,8 +83,8 @@ async def stripe_webhook(request: Request, db: Session = Depends(get_db)):
         _log.warning("Stripe webhook: invalid signature")
         raise HTTPException(status_code=400, detail="Invalid Stripe signature.")
     except Exception as exc:
-        _log.error("Stripe webhook parse error: %s", exc)
-        raise HTTPException(status_code=400, detail=str(exc))
+        _log.error("Stripe webhook parse error: %s", exc, exc_info=True)
+        raise HTTPException(status_code=400, detail="Webhook parse error.")
 
     event_type = event["type"]
     _log.info("Stripe webhook received: %s", event_type)

@@ -1,11 +1,11 @@
 from datetime import datetime
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 # ── URL schemas ────────────────────────────────────────────────────────────────
 
 class UrlCreate(BaseModel):
-    url: str
+    url: str = Field(..., max_length=2083)
 
 
 class UrlOut(BaseModel):
@@ -21,7 +21,7 @@ class UrlOut(BaseModel):
 
 
 class UrlNotesUpdate(BaseModel):
-    notes: str | None = None
+    notes: str | None = Field(None, max_length=10000)
 
 
 class UrlStar(BaseModel):
@@ -35,11 +35,11 @@ class UrlTransferTarget(BaseModel):
 # ── List schemas ───────────────────────────────────────────────────────────────
 
 class ListCreate(BaseModel):
-    name: str
+    name: str = Field(..., max_length=200)
 
 
 class ListUpdate(BaseModel):
-    name: str
+    name: str = Field(..., max_length=200)
 
 
 class ListStar(BaseModel):
@@ -51,7 +51,6 @@ class ListOut(BaseModel):
     name:     str
     starred:  bool = False
     archived: bool = False
-    owner_id: int
     urls:     list[UrlOut] = []
 
     model_config = {"from_attributes": True}
@@ -80,7 +79,7 @@ class UserOut(BaseModel):
 
 class OnboardingUpdate(BaseModel):
     # ONBOARDING: accepted values mirror the options shown on the onboarding screen
-    work_type: str
+    work_type: str = Field(..., max_length=100)
 
 
 class PasswordChange(BaseModel):
