@@ -18,13 +18,6 @@ def _get_real_ip(request: Request) -> str:
          X-Real-IP is absent (non-Railway deployments, local dev with a proxy).
       3. request.client.host — final fallback for direct connections (local dev).
     """
-    # TEMPORARY DIAGNOSTIC — remove after confirming Railway header values in logs.
-    _log.info(
-        "RateLimit headers | X-Real-IP=%r | X-Forwarded-For=%r",
-        request.headers.get("X-Real-IP", "<absent>"),
-        request.headers.get("X-Forwarded-For", "<absent>"),
-    )
-
     # ── Primary: X-Real-IP ───────────────────────────────────────────────────
     x_real_ip = request.headers.get("X-Real-IP", "").strip()
     if x_real_ip:
