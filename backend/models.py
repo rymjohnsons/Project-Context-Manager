@@ -22,7 +22,9 @@ class User(Base):
     tabs_opened     = Column(Integer, default=0, nullable=False)
 
     # AUTH: incremented on password change to invalidate outstanding JWTs
-    token_version = Column(Integer, default=0, nullable=False)
+    token_version   = Column(Integer, default=0, nullable=False)
+    # AUTH: set True after clicking the verification link sent on registration
+    email_verified  = Column(Boolean, default=False, nullable=False)
 
     # BILLING: subscription state
     plan                   = Column(String, default="free", nullable=False)
@@ -96,6 +98,18 @@ class WorkspaceShare(Base):
 
 class PasswordResetToken(Base):
     __tablename__ = "password_reset_tokens"
+
+    id         = Column(Integer, primary_key=True, index=True)
+    user_id    = Column(Integer, ForeignKey("users.id"), nullable=False)
+    token      = Column(String, unique=True, nullable=False)
+    created_at = Column(DateTime(timezone=True), default=utcnow)
+    used       = Column(Boolean, default=False, nullable=False)
+
+    user = relationship("User")
+
+
+class EmailVerificationToken(Base):
+    __tablename__ = "email_verification_tokens"
 
     id         = Column(Integer, primary_key=True, index=True)
     user_id    = Column(Integer, ForeignKey("users.id"), nullable=False)

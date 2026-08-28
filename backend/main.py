@@ -115,6 +115,12 @@ def serve_app_js():
     return Response(content=content, headers={"Content-Type": "text/javascript; charset=utf-8"})
 
 
+@app.get("/verify-email", tags=["frontend"])
+def verify_email_page():
+    html = os.path.join(os.path.dirname(__file__), '..', 'index.html')
+    return FileResponse(os.path.abspath(html))
+
+
 @app.get("/reset-password", tags=["frontend"])
 def reset_password_page():
     # Serves index.html so password-reset email links (tabrador.app/reset-password?token=...)

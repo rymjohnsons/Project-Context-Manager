@@ -418,6 +418,12 @@
       border-radius: 8px; font-size: 0.85rem; z-index: 999;
       max-width: 90vw; text-align: center; animation: fadeup 0.2s ease;
     }
+    .success-toast {
+      position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%);
+      background: #059669; color: white; padding: 0.6rem 1.25rem;
+      border-radius: 8px; font-size: 0.85rem; z-index: 999;
+      max-width: 90vw; text-align: center; animation: fadeup 0.2s ease;
+    }
     @keyframes fadeup {
       from { opacity: 0; transform: translateX(-50%) translateY(8px); }
       to   { opacity: 1; transform: translateX(-50%) translateY(0); }
@@ -644,6 +650,32 @@
       font-size: 0.8rem; color: #8EAAD8; font-style: italic;
       padding: 0.5rem 0; margin-bottom: 2rem;
     }
+
+    /* ── Email verification banner ── */
+    .verify-banner {
+      background: #92400e; color: #fef3c7;
+      padding: 0.7rem 1.5rem;
+      display: flex; align-items: center; gap: 1rem; flex-shrink: 0;
+      font-size: 0.82rem; line-height: 1.45; flex-wrap: wrap;
+    }
+    .verify-banner.hidden { display: none; }
+    .verify-banner-text { flex: 1; min-width: 0; }
+    .verify-resend-btn {
+      background: #fef3c7; color: #92400e; border: none; border-radius: 8px;
+      padding: 0.35rem 0.9rem; font-size: 0.8rem; font-weight: 600;
+      cursor: pointer; font-family: inherit; flex-shrink: 0; white-space: nowrap;
+      transition: background 0.12s;
+    }
+    .verify-resend-btn:hover:not(:disabled) { background: #fde68a; }
+    .verify-resend-btn:disabled { opacity: 0.6; cursor: default; }
+
+    /* ── Auth success message (e.g. post-verification) ── */
+    .auth-success {
+      background: rgba(5, 150, 105, 0.08); border: 1px solid #6ee7b7;
+      border-radius: 5px; color: #065f46;
+      font-size: 0.85rem; padding: 0.6rem 0.8rem; line-height: 1.4;
+    }
+    .auth-success.hidden { display: none; }
 
     /* ── Trial / billing banner ── */
     .trial-banner {
@@ -982,7 +1014,8 @@
       <button id="tab-login"    class="auth-tab active">Log In</button>
       <button id="tab-register" class="auth-tab">Register</button>
     </div>
-    <div id="auth-error" class="auth-error hidden"></div>
+    <div id="auth-error"   class="auth-error hidden"></div>
+    <div id="auth-success" class="auth-success hidden"></div>
     <div id="auth-form-wrap" class="auth-form">
       <input type="email"    id="auth-email"    placeholder="Email address"  autocomplete="email" />
       <input type="password" id="auth-password" placeholder="Password"       autocomplete="current-password" />
@@ -1122,6 +1155,12 @@
 
   <!-- Main content -->
   <main class="main-content">
+
+    <!-- Email verification banner — shown when email_verified is false -->
+    <div id="verify-banner" class="verify-banner hidden" role="alert">
+      <span class="verify-banner-text">Please verify your email address — check your inbox for a link. Workspaces shared with you won't be claimed until your email is confirmed.</span>
+      <button class="verify-resend-btn" id="verify-resend-btn">Resend email</button>
+    </div>
 
     <!-- BILLING: trial / upgrade banner — shown above all content views -->
     <div id="trial-banner" class="trial-banner hidden">

@@ -91,9 +91,115 @@ def _send_reset_email(to_email: str, token: str) -> None:
         _log.error("Failed to send reset email to %s: %s", to_email, exc)
 
 
+# ── Verification email ─────────────────────────────────────────────────────────
+
+_VERIFY_EMAIL_HTML = """\
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"></head>
+<body style="font-family:Arial,sans-serif;font-size:15px;color:#222;padding:32px;">
+  <p><strong>Tabrador — Verify your email address</strong></p>
+  <p>Thanks for signing up. Click the link below to verify your email address and activate your account. This link expires in 24 hours.</p>
+  <p>Verify your email:<br>
+    <a href="VERIFY_LINK">VERIFY_LINK</a>
+  </p>
+  <p>If the link above doesn't work, copy and paste this URL into your browser:<br>
+    VERIFY_LINK
+  </p>
+  <p style="color:#888;font-size:13px;">If you didn't sign up for Tabrador, you can safely ignore this email.</p>
+  <p style="color:#888;font-size:13px;">— Tabrador &middot; hello@tabrador.app</p>
+</body>
+</html>
+"""
+
+_DUPLICATE_REGISTER_EMAIL_HTML = """\
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"></head>
+<body style="font-family:Arial,sans-serif;font-size:15px;color:#222;padding:32px;">
+  <p><strong>Tabrador — Someone tried to sign up with your email address</strong></p>
+  <p>We received a request to create a new Tabrador account using your email address. Since you already have an account, no new account was created.</p>
+  <p>If this was you, you may have forgotten that you already have a Tabrador account. You can log in directly at <a href="APP_URL">tabrador.app</a>, or reset your password using the link below:</p>
+  <p><a href="RESET_LINK">Reset my password</a></p>
+  <p>If the link above doesn't work, copy and paste this URL into your browser:<br>
+    RESET_LINK
+  </p>
+  <p style="color:#888;font-size:13px;">If this wasn't you, your account is safe — no action is required.</p>
+  <p style="color:#888;font-size:13px;">— Tabrador &middot; hello@tabrador.app</p>
+</body>
+</html>
+"""
+
+
+def _send_verify_email(to_email: str, token: str) -> None:
+    """Send an email-verification link via Resend. Logs errors, never raises."""
+    api_key = os.environ.get("RESEND_API_KEY")
+    if not api_key:
+        _log.warning("RESEND_API_KEY not set — skipping verification email to %s", to_email)
+        return
+    verify_link = f"{_APP_URL}/verify-email?token={token}"
+    html = _VERIFY_EMAIL_HTML.replace("VERIFY_LINK", verify_link)
+    try:
+        import resend
+        resend.api_key = api_key
+        resend.Emails.send({
+            "from":    "Tabrador <hello@tabrador.app>",
+            "to":      [to_email],
+            "subject": "Verify your Tabrador email address",
+            "html":    html,
+            "text": (
+                f"Verify your Tabrador email address\n\n"
+                f"Click the link below to verify your email. It expires in 24 hours.\n\n"
+                f"{verify_link}\n\n"
+                f"If you didn't sign up for Tabrador, you can safely ignore this email."
+            ),
+        })
+        _log.info("Verification email sent to %s", to_email)
+    except Exception as exc:
+        _log.error("Failed to send verification email to %s: %s", to_email, exc)
+
+
+def _send_duplicate_register_email(to_email: str, reset_token: str) -> None:
+    """Notify an existing user that someone tried to register with their email."""
+    api_key = os.environ.get("RESEND_API_KEY")
+    if not api_key:
+        return
+    reset_link = f"{_APP_URL}/reset-password?token={reset_token}"
+    html = (
+        _DUPLICATE_REGISTER_EMAIL_HTML
+        .replace("RESET_LINK", reset_link)
+        .replace("APP_URL", _APP_URL)
+    )
+    try:
+        import resend
+        resend.api_key = api_key
+        resend.Emails.send({
+            "from":    "Tabrador <hello@tabrador.app>",
+            "to":      [to_email],
+            "subject": "Someone tried to sign up with your Tabrador email",
+            "html":    html,
+            "text": (
+                f"Someone tried to create a new Tabrador account using your email address.\n\n"
+                f"If this was you, you may have forgotten that you already have an account. "
+                f"You can reset your password here:\n\n"
+                f"{reset_link}\n\n"
+                f"If this wasn't you, your account is safe — no action is required."
+            ),
+        })
+        _log.info("Duplicate-register email sent to %s", to_email)
+    except Exception as exc:
+        _log.error("Failed to send duplicate-register email to %s: %s", to_email, exc)
+
+
 # ── Routes ─────────────────────────────────────────────────────────────────────
 
-@router.post("/register", response_model=schemas.UserOut, status_code=201)
+_REGISTER_OK_MSG = (
+    "If that email address is new to us, your account has been created — "
+    "check your inbox for a verification link."
+)
+
+
+@router.post("/register", status_code=201)
 @limiter.limit("5/minute")  # 5 registrations/min per IP — prevents bulk account creation
 def register(request: Request, user_in: schemas.UserCreate, db: Session = Depends(get_db)):
     # ── Server-side validation ────────────────────────────────────────────────
@@ -111,20 +217,67 @@ def register(request: Request, user_in: schemas.UserCreate, db: Session = Depend
 
     existing = db.query(models.User).filter(models.User.email == user_in.email).first()
     if existing:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="An account with that email already exists.",
-        )
+        # L-1: don't reveal whether the email is registered — send a password-reset
+        # style email so the real owner has a recovery path, return same generic message.
+        reset_token = secrets.token_urlsafe(32)
+        db.query(models.PasswordResetToken).filter(
+            models.PasswordResetToken.user_id == existing.id,
+            models.PasswordResetToken.used    == False,  # noqa: E712
+        ).update({"used": True})
+        db.commit()
+        db.add(models.PasswordResetToken(user_id=existing.id, token=reset_token))
+        db.commit()
+        _send_duplicate_register_email(existing.email, reset_token)
+        return {"message": _REGISTER_OK_MSG}
+
     user = models.User(
         email=user_in.email,
         hashed_password=auth.hash_password(user_in.password),
         trial_ends_at=datetime.now(timezone.utc) + timedelta(days=30),  # BILLING: 30-day trial
+        email_verified=False,
     )
     db.add(user)
     db.commit()
     db.refresh(user)
 
-    # Claim any workspace shares that were sent to this email before they had an account
+    # Pending share auto-claim is intentionally deferred until email_verified=True.
+    # Generate and send a verification token — claim happens in /verify-email.
+    verify_token = secrets.token_urlsafe(32)
+    db.add(models.EmailVerificationToken(user_id=user.id, token=verify_token))
+    db.commit()
+    _send_verify_email(user.email, verify_token)
+
+    return {"message": _REGISTER_OK_MSG}
+
+
+@router.post("/verify-email")
+@limiter.limit("10/minute")
+def verify_email(request: Request, req: schemas.EmailVerifyRequest, db: Session = Depends(get_db)):
+    """Public endpoint — validates the token from the verification email."""
+    record = db.query(models.EmailVerificationToken).filter(
+        models.EmailVerificationToken.token == req.token,
+        models.EmailVerificationToken.used  == False,  # noqa: E712
+    ).first()
+
+    if not record:
+        raise HTTPException(status_code=400, detail="Invalid or expired verification link.")
+
+    created = record.created_at
+    if created.tzinfo is None:
+        created = created.replace(tzinfo=timezone.utc)
+    if (datetime.now(timezone.utc) - created).total_seconds() > 86400:  # 24 hours
+        record.used = True
+        db.commit()
+        raise HTTPException(
+            status_code=400,
+            detail="This verification link has expired. Please request a new one.",
+        )
+
+    user = record.user
+    user.email_verified = True
+    record.used = True
+
+    # Now that ownership is confirmed, claim any pending shares for this email.
     db.query(models.WorkspaceShare).filter(
         models.WorkspaceShare.recipient_email == user.email.lower(),
         models.WorkspaceShare.status          == "pending",
@@ -133,9 +286,34 @@ def register(request: Request, user_in: schemas.UserCreate, db: Session = Depend
         "status":       "claimed",
         "claimed_at":   datetime.now(timezone.utc),
     })
+
+    db.commit()
+    return {"message": "Email verified — welcome to Tabrador!"}
+
+
+@router.post("/resend-verification")
+@limiter.limit("3/minute")
+def resend_verification(
+    request:      Request,
+    db:           Session     = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user),
+):
+    """Authenticated — resend the verification email to the logged-in user."""
+    if current_user.email_verified:
+        return {"message": "Your email address is already verified."}
+
+    # Expire all unused tokens for this user before issuing a fresh one.
+    db.query(models.EmailVerificationToken).filter(
+        models.EmailVerificationToken.user_id == current_user.id,
+        models.EmailVerificationToken.used    == False,  # noqa: E712
+    ).update({"used": True})
     db.commit()
 
-    return user
+    verify_token = secrets.token_urlsafe(32)
+    db.add(models.EmailVerificationToken(user_id=current_user.id, token=verify_token))
+    db.commit()
+    _send_verify_email(current_user.email, verify_token)
+    return {"message": "Verification email sent — check your inbox."}
 
 
 @router.post("/login", response_model=schemas.Token)

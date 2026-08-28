@@ -73,6 +73,8 @@ class UserOut(BaseModel):
     plan:                   str      = "free"
     trial_ends_at:          datetime | None = None
     comped:                 bool     = False
+    # AUTH: whether the user has clicked their verification link
+    email_verified:         bool     = True
 
     model_config = {"from_attributes": True}
 
@@ -158,6 +160,10 @@ class DashboardOut(BaseModel):
 
 
 # ── Password reset schemas ─────────────────────────────────────────────────────
+
+class EmailVerifyRequest(BaseModel):
+    token: str
+
 
 class ForgotPasswordRequest(BaseModel):
     email: str

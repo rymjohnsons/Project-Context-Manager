@@ -155,6 +155,7 @@ async function submitAuth() {
     } else {
       showApp(user.email);
       showTrialBanner();
+      showVerifyBanner();
       await render();
       await loadSharedWorkspaces();
       showDashboard();
@@ -202,6 +203,8 @@ async function completeOnboarding(workType) {
   document.getElementById('onboarding-overlay').classList.add('hidden');
   const email = document.getElementById('user-email').textContent;
   showApp(email);
+  showTrialBanner();
+  showVerifyBanner();
   await render();
   await loadSharedWorkspaces();
   showDashboard();
@@ -1058,6 +1061,91 @@ function checkShareLink() {
   } catch { /* malformed token — ignore */ }
 }
 
+// ── Email verification ────────────────────────────────────────────────────────
+
+function showVerifyBanner() {
+  const banner = document.getElementById('verify-banner');
+  if (!banner) return;
+  banner.classList.toggle('hidden', !currentUser || !!currentUser.email_verified);
+}
+
+async function checkVerifyEmail() {
+  if (location.pathname !== '/verify-email') return false;
+
+  const token = new URLSearchParams(location.search).get('token');
+  history.replaceState(null, '', '/');
+
+  const bootEl = document.getElementById('boot-loader');
+
+  if (!token) {
+    bootEl.classList.add('hidden');
+    showAuthScreen();
+    setAuthError('Invalid verification link — no token was found.');
+    return true;
+  }
+
+  try {
+    await apiFetch('/users/verify-email', {
+      method: 'POST',
+      body: JSON.stringify({ token }),
+    });
+
+    // If user is already logged in, refresh state so banner hides and shared
+    // workspaces (now claimed) appear.
+    const storedToken = getToken();
+    if (storedToken) {
+      try {
+        const user = await apiFetch('/users/me');
+        currentUser = user;
+        bootEl.classList.add('hidden');
+        showApp(user.email);
+        showTrialBanner();
+        showVerifyBanner();      // hides the banner since now verified
+        await render();
+        await loadSharedWorkspaces();  // shared workspaces now claimed
+        showDashboard();
+        showSuccessToast('Email verified — your account is fully active.');
+      } catch {
+        bootEl.classList.add('hidden');
+        showAuthScreen();
+        _setAuthSuccess('Email verified! Please log in to continue.');
+      }
+    } else {
+      bootEl.classList.add('hidden');
+      showAuthScreen();
+      _setAuthSuccess('Email verified — you can now log in below.');
+    }
+  } catch (e) {
+    bootEl.classList.add('hidden');
+    showAuthScreen();
+    setAuthError(e.message || 'Invalid or expired verification link. Please request a new one.');
+  }
+  return true;
+}
+
+function _setAuthSuccess(msg) {
+  const el = document.getElementById('auth-success');
+  if (!el) return;
+  el.textContent = msg;
+  el.classList.toggle('hidden', !msg);
+  // clear any error shown alongside
+  setAuthError('');
+}
+
+document.getElementById('verify-resend-btn')?.addEventListener('click', async function () {
+  this.disabled = true;
+  this.textContent = 'Sending…';
+  try {
+    await apiFetch('/users/resend-verification', { method: 'POST' });
+    this.textContent = 'Sent!';
+    setTimeout(() => { this.textContent = 'Resend email'; this.disabled = false; }, 3000);
+  } catch (e) {
+    showErrorToast(e.message || 'Could not send — please try again.');
+    this.textContent = 'Resend email';
+    this.disabled = false;
+  }
+});
+
 async function importSharedList() {
   if (!pendingImport) return;
   const { name, urls } = pendingImport;
@@ -1181,6 +1269,14 @@ async function importSnapshot() {
 function showErrorToast(msg) {
   const toast = document.createElement('div');
   toast.className   = 'error-toast';
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => toast.remove(), 4000);
+}
+
+function showSuccessToast(msg) {
+  const toast = document.createElement('div');
+  toast.className   = 'success-toast';
   toast.textContent = msg;
   document.body.appendChild(toast);
   setTimeout(() => toast.remove(), 4000);
@@ -1899,9 +1995,12 @@ document.getElementById('template-modal').addEventListener('click', e => {
 async function boot() {
   const bootEl = document.getElementById('boot-loader');
 
+  // Handle /verify-email path before anything else.
+  if (await checkVerifyEmail()) return;
+
   const params     = new URLSearchParams(location.search);
   const resetToken = params.get('token') || params.get('reset_token');
-  if (resetToken) {
+  if (resetToken && location.pathname === '/reset-password') {
     document.getElementById('reset-token').value = resetToken;
     showAuthScreen();
     setAuthMode('reset');
@@ -1923,6 +2022,7 @@ async function boot() {
     showApp(user.email);
     showSidebarSkeleton();          // show skeleton items in sidebar
     showTrialBanner();              // show trial/upgrade banner if applicable
+    showVerifyBanner();             // show verification prompt if email unverified
     bootEl.classList.add('hidden'); // user now sees app with skeleton
     await render();                 // lists load → skeleton replaced with real items
     await loadSharedWorkspaces();
