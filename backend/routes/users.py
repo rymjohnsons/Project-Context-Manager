@@ -376,6 +376,7 @@ def reset_password(request: Request, req: schemas.ResetPasswordRequest, db: Sess
         raise HTTPException(status_code=400, detail="This reset token has expired. Please request a new one.")
 
     record.user.hashed_password = auth.hash_password(req.new_password)
+    record.user.token_version   = (record.user.token_version or 0) + 1
     record.used = True
     db.commit()
     return {"message": "Password updated successfully."}
