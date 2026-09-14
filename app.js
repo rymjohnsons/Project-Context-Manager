@@ -1359,13 +1359,15 @@ function renderSidebar() {
   starredContainer.innerHTML  = '';
   archivedContainer.innerHTML = '';
 
+  const _alpha = (a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+
   if (currentLists.length === 0) {
     const p = document.createElement('p');
     p.className = 'nav-empty-hint';
     p.innerHTML = 'No workspaces yet&nbsp;&mdash; click&nbsp;<strong style="color:#C5D8F0;">+</strong>&nbsp;above to create one.';
     myListsContainer.appendChild(p);
   } else {
-    currentLists.forEach(list => myListsContainer.appendChild(buildNavItem(list)));
+    [...currentLists].sort(_alpha).forEach(list => myListsContainer.appendChild(buildNavItem(list)));
   }
 
   // SHARING: Team Workspaces section — workspaces shared with current user
@@ -1375,7 +1377,7 @@ function renderSidebar() {
     p.textContent = 'Nothing shared with you yet.';
     teamContainer.appendChild(p);
   } else {
-    sharedWorkspaces.forEach(ws => {
+    [...sharedWorkspaces].sort(_alpha).forEach(ws => {
       const item = document.createElement('div');
       item.className  = 'nav-item' + (ws.id == selectedListId ? ' nav-item--active' : '');
       item.dataset.id = ws.id;
@@ -1387,7 +1389,7 @@ function renderSidebar() {
     });
   }
 
-  const starred = currentLists.filter(l => l.starred);
+  const starred = [...currentLists].filter(l => l.starred).sort(_alpha);
   if (starred.length === 0) {
     const p = document.createElement('p');
     p.className   = 'nav-coming-soon';
@@ -1403,7 +1405,7 @@ function renderSidebar() {
     p.textContent = 'No archived workspaces.';
     archivedContainer.appendChild(p);
   } else {
-    archivedLists.forEach(list => archivedContainer.appendChild(buildNavItem(list)));
+    [...archivedLists].sort(_alpha).forEach(list => archivedContainer.appendChild(buildNavItem(list)));
   }
 }
 
