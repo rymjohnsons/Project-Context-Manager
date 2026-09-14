@@ -512,6 +512,31 @@
     .url-action-btn.url-star.starred   { color: #f59e0b; }
     .url-action-btn.url-remove:hover   { color: #dc2626; background: #fee2e2; }
 
+    /* ── Resource table: narrow-viewport fix ── */
+    /* At ≤750px viewport the fixed columns (155+115+120px = 390px) exceed the
+       content area (viewport − 240px sidebar), causing the header labels to
+       collide and the added-by text to overlap the URL title in each row.
+       This media query collapses to a 2-column layout (title | actions) and
+       stacks the added-by username below the URL link instead. */
+    @media (max-width: 750px) {
+      .detail-url-table-header {
+        grid-template-columns: 1fr auto;
+      }
+      .detail-url-table-header span:nth-child(2),
+      .detail-url-table-header span:nth-child(3) { display: none; }
+      .detail-url-table-header span:nth-child(4) { grid-column: 2; grid-row: 1; }
+
+      .url-row {
+        grid-template-columns: 1fr auto;
+        grid-template-rows: auto auto;
+        align-items: start;
+      }
+      .url-col-title   { grid-column: 1; grid-row: 1; }
+      .url-col-addedby { grid-column: 1; grid-row: 2; padding: 0 0 0.2rem; font-size: 0.68rem; }
+      .url-col-lastopened { display: none; }
+      .url-col-actions { grid-column: 2; grid-row: 1 / span 2; align-self: center; }
+    }
+
     .url-notes-row {
       padding: 0 0.85rem 0.45rem; border-top: 1px solid #F4F1EA;
     }
