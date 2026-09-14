@@ -112,7 +112,13 @@ def serve_app_js():
     js_path = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'app.js'))
     with open(js_path, 'rb') as f:
         content = f.read()
-    return Response(content=content, headers={"Content-Type": "text/javascript; charset=utf-8"})
+    return Response(content=content, headers={
+        "Content-Type":  "text/javascript; charset=utf-8",
+        # no-store prevents Cloudflare (and other CDNs) from caching this file at the edge.
+        # Without it, Cloudflare caches .js files by default and hard-refreshes from the
+        # browser do not bypass the CDN cache, so new deploys are invisible to users.
+        "Cache-Control": "no-store",
+    })
 
 
 @app.get("/verify-email", tags=["frontend"])

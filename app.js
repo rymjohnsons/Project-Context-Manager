@@ -1425,7 +1425,8 @@ function renderMyWorkspaces() {
     grid.innerHTML = '<p class="dash-empty-hint">No workspaces yet — click + next to My Workspaces in the sidebar to create one.</p>';
     return;
   }
-  currentLists.forEach(list => {
+  const _alpha = (a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+  [...currentLists].sort(_alpha).forEach(list => {
     const card = document.createElement('div');
     card.className = 'workspace-grid-card';
     card.innerHTML = `
@@ -1450,7 +1451,8 @@ function renderSharedWithMe() {
     grid.innerHTML = '<p class="dash-empty-hint">No shared workspaces yet. When a teammate shares a workspace with you, it will appear here.</p>';
     return;
   }
-  sharedWorkspaces.forEach(ws => {
+  const _alpha = (a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' });
+  [...sharedWorkspaces].sort(_alpha).forEach(ws => {
     const card = document.createElement('div');
     card.className = 'workspace-grid-card';
     card.innerHTML = `
