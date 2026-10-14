@@ -1,6 +1,14 @@
 from datetime import datetime
 from pydantic import BaseModel, Field
 
+# ── Shared validation constants ────────────────────────────────────────────────
+# Centralised here so register, change_password, and reset_password cannot drift.
+_EMAIL_MAX_LEN       = 254   # RFC 5321 maximum
+_PASSWORD_MIN_LEN    = 8
+# Raw bcrypt silently truncates at 72 bytes — enforce this ceiling on NEW passwords
+# so users are never surprised by "password changed" but the first 72 chars still match.
+# Login intentionally has no max so existing accounts are never locked out.
+_PASSWORD_NEW_MAX_LEN = 72
 
 # ── URL schemas ────────────────────────────────────────────────────────────────
 
@@ -59,7 +67,10 @@ class ListOut(BaseModel):
 # ── User schemas ───────────────────────────────────────────────────────────────
 
 class UserCreate(BaseModel):
-    email:    str
+    # Used for both register AND login — password has no min/max here so existing
+    # accounts can always log in. Length enforcement for new passwords is in the
+    # register route manually and via Field constraints on the dedicated schemas below.
+    email:    str = Field(..., max_length=_EMAIL_MAX_LEN)
     password: str
 
 
@@ -86,7 +97,7 @@ class OnboardingUpdate(BaseModel):
 
 class PasswordChange(BaseModel):
     current_password: str
-    new_password:     str
+    new_password:     str = Field(..., min_length=_PASSWORD_MIN_LEN, max_length=_PASSWORD_NEW_MAX_LEN)
 
 
 # ── Auth schemas ───────────────────────────────────────────────────────────────
@@ -103,7 +114,7 @@ class TokenData(BaseModel):
 # ── Workspace share schemas ────────────────────────────────────────────────────
 
 class WorkspaceShareCreate(BaseModel):
-    email:      str
+    email:      str = Field(..., max_length=_EMAIL_MAX_LEN)
     permission: str = "edit"   # 'edit' | 'view'
 
 
@@ -166,7 +177,7 @@ class EmailVerifyRequest(BaseModel):
 
 
 class ForgotPasswordRequest(BaseModel):
-    email: str
+    email: str = Field(..., max_length=_EMAIL_MAX_LEN)
 
 
 class ForgotPasswordResponse(BaseModel):
@@ -175,4 +186,4 @@ class ForgotPasswordResponse(BaseModel):
 
 class ResetPasswordRequest(BaseModel):
     token:        str
-    new_password: str
+    new_password: str = Field(..., min_length=_PASSWORD_MIN_LEN, max_length=_PASSWORD_NEW_MAX_LEN)

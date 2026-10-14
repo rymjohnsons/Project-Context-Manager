@@ -2,8 +2,6 @@ import logging
 import os
 import re
 import secrets
-import subprocess
-import sys
 from datetime import datetime, timedelta, timezone
 
 # Matches "something@something.tld" — rejects "ryan@", "notanemail", etc.
@@ -12,17 +10,7 @@ _EMAIL_RE = re.compile(r'^[^\s@]+@[^\s@]+\.[^\s@]{2,}$')
 from fastapi import Request
 from limiter import limiter
 
-# Install resend at startup if the build cache omitted it
-try:
-    import resend as _resend  # noqa: F401
-except ImportError:
-    _log_boot = logging.getLogger(__name__)
-    _log_boot.warning("resend not found — installing now")
-    subprocess.check_call(
-        [sys.executable, "-m", "pip", "install", "resend", "-q"],
-        stdout=subprocess.DEVNULL,
-    )
-    _log_boot.warning("resend installed successfully")
+import resend as _resend  # noqa: F401 — listed in requirements.txt; confirmed present at build time
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy import func
@@ -203,10 +191,18 @@ _REGISTER_OK_MSG = (
 @limiter.limit("5/minute")  # 5 registrations/min per IP — prevents bulk account creation
 def register(request: Request, user_in: schemas.UserCreate, db: Session = Depends(get_db)):
     # ── Server-side validation ────────────────────────────────────────────────
-    if len(user_in.password) < 8:
+    # Use the shared constants from schemas so all three password-creation paths
+    # (register / change_password / reset_password) stay in sync.
+    if len(user_in.password) < schemas._PASSWORD_MIN_LEN:
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Password must be at least 8 characters.",
+            detail=f"Password must be at least {schemas._PASSWORD_MIN_LEN} characters.",
+        )
+    if len(user_in.password) > schemas._PASSWORD_NEW_MAX_LEN:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"Password must be {schemas._PASSWORD_NEW_MAX_LEN} characters or fewer "
+                   f"(bcrypt limit — longer passwords are silently truncated).",
         )
     if not _EMAIL_RE.match(user_in.email.strip()):
         raise HTTPException(
@@ -319,6 +315,17 @@ def resend_verification(
 @router.post("/login", response_model=schemas.Token)
 @limiter.limit("10/minute")  # 10 attempts/min per IP — brute-force protection on login
 def login(request: Request, user_in: schemas.UserCreate, db: Session = Depends(get_db)):
+    # B1-TEMP: log raw header values to determine which IP header is trustworthy behind
+    # Cloudflare. REMOVE this block once the production values have been reviewed.
+    _log.info(
+        "LOGIN_IP_AUDIT cf=%r x_real=%r xff=%r peer=%r",
+        request.headers.get("CF-Connecting-IP"),
+        request.headers.get("X-Real-IP"),
+        request.headers.get("X-Forwarded-For"),
+        request.client.host if request.client else None,
+    )
+    # END B1-TEMP
+
     user = db.query(models.User).filter(models.User.email == user_in.email).first()
     if not user or not auth.verify_password(user_in.password, user.hashed_password):
         raise HTTPException(

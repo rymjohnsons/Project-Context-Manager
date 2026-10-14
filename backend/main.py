@@ -64,13 +64,20 @@ _CSP = (
     "connect-src 'self' https://cloudflareinsights.com; "
     "img-src 'self' data:; "
     "object-src 'none'; "
-    "base-uri 'self';"
+    "base-uri 'self'; "
+    # M-2: prevent the app from being framed — closes clickjacking attack surface.
+    "frame-ancestors 'none';"
 )
 
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
     response = await call_next(request)
     response.headers["Content-Security-Policy"] = _CSP
+    # M-2: belt-and-suspenders framing protection for older browsers that ignore CSP.
+    response.headers["X-Frame-Options"]         = "DENY"
+    # L-5: password-reset and verify-email tokens appear in URLs; no-referrer ensures
+    # those tokens can never leak via a Referer header to third-party analytics or links.
+    response.headers["Referrer-Policy"]         = "no-referrer"
     return response
 
 # ── CORS ───────────────────────────────────────────────────────────────────────
