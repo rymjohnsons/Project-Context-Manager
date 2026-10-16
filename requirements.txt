@@ -6,6 +6,7 @@ python-jose[cryptography]
 bcrypt
 pydantic[email]
 psycopg2-binary
+psycopg[binary]>=3.1,<4
 python-dotenv
 resend
 slowapi
